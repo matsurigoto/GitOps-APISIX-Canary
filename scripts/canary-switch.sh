@@ -15,7 +15,7 @@ set -euo pipefail
 # =============================================================================
 
 APISIX_ADMIN="${APISIX_ADMIN_URL:-http://127.0.0.1:9180}"
-ADMIN_KEY="${APISIX_ADMIN_KEY:-gitops-canary-admin-key-2026}"
+ADMIN_KEY="${APISIX_ADMIN_KEY:-edd1c9f034335f136f87ad84b625c8f1}"
 UPSTREAM_ID="canary-upstream"
 
 # Parse arguments

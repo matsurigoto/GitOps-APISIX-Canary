@@ -110,8 +110,8 @@ kubectl apply -f gitops/root-app.yaml
 
 ```bash
 cd app
-ACR_LOGIN_SERVER=$(az acr show --name <ACR_NAME> --query loginServer -o tsv)
-az acr login --name <ACR_NAME>
+ACR_LOGIN_SERVER=$(az acr show --name acrgitopscanaryc31ba2 --query loginServer -o tsv)
+az acr login --name acrgitopscanaryc31ba2
 docker build -t ${ACR_LOGIN_SERVER}/spring-demo:v1 .
 docker push ${ACR_LOGIN_SERVER}/spring-demo:v1
 ```
@@ -121,7 +121,7 @@ docker push ${ACR_LOGIN_SERVER}/spring-demo:v1
 ### 7. 上傳 OPA Bundle
 
 ```bash
-export STORAGE_ACCOUNT=<your-storage-account>
+export STORAGE_ACCOUNT=stgitopscanarya395e3
 chmod +x scripts/upload-opa-bundle.sh
 ./scripts/upload-opa-bundle.sh
 ```

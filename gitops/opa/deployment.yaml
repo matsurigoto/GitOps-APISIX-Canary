@@ -8,7 +8,7 @@ metadata:
   namespace: opa-system
   annotations:
     # ⚠ Replace <OPA_CLIENT_ID> with the actual Managed Identity client ID
-    azure.workload.identity/client-id: "<OPA_CLIENT_ID>"
+    azure.workload.identity/client-id: "7a218c76-2777-4b59-93ba-ee3ea057e2fc"
   labels:
     azure.workload.identity/use: "true"
 ---

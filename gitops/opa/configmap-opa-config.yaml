@@ -14,7 +14,7 @@ data:
   opa-config.yaml: |
     services:
       azure_blob:
-        url: https://<STORAGE_ACCOUNT>.blob.core.windows.net
+        url: https://stgitopscanarya395e3 .blob.core.windows.net
         headers:
           x-ms-version: "2020-04-08"
         response_header_timeout_seconds: 10

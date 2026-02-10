@@ -31,6 +31,8 @@ echo "  ACR Name        : $ACR_NAME"
 echo "  Storage Account : $STORAGE_ACCOUNT"
 echo ""
 
+az account set --subscription "4ca77e9a-6c96-4f6f-b9e7-0ff2c277509d"
+
 # ── 1. Resource Group ──────────────────────────────────────────────────────
 echo "▶ [1/10] Creating Resource Group..."
 az group create \
@@ -125,17 +127,24 @@ echo "   OPA Identity Principal ID : $OPA_PRINCIPAL_ID"
 
 # ── 8. Grant Storage Blob Data Reader to OPA identity ─────────────────────
 echo "▶ [8/10] Assigning Storage Blob Data Reader role..."
+
+
+az provider register --namespace Microsoft.Storage --wait
+az provider register --namespace Microsoft.Authorization --wait
+
 STORAGE_ACCOUNT_ID=$(az storage account show \
   --name "$STORAGE_ACCOUNT" \
   --resource-group "$RESOURCE_GROUP" \
   --query id -o tsv)
+
+echo "   Storage Account ID: $STORAGE_ACCOUNT_ID"
 
 az role assignment create \
   --assignee-object-id "$OPA_PRINCIPAL_ID" \
   --assignee-principal-type ServicePrincipal \
   --role "Storage Blob Data Reader" \
   --scope "$STORAGE_ACCOUNT_ID" \
-  --output table
+  --output table 
 
 # ── 9. Create Federated Identity Credential (Workload Identity) ───────────
 echo "▶ [9/10] Creating Federated Identity Credential..."
@@ -183,7 +192,7 @@ echo "  3. Install kube-prometheus-stack:"
 echo "     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts"
 echo "     helm install monitoring prometheus-community/kube-prometheus-stack -n observability -f gitops/observability/kube-prometheus-stack/values.yaml"
 echo ""
-echo "  4. Apply ArgoCD root-app:"
+echo "  4. Apply ArgoCD root-app:
 echo "     kubectl apply -f gitops/root-app.yaml"
 echo ""
 echo "  5. Set GitHub Secrets:"

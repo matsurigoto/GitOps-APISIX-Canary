@@ -3,6 +3,9 @@
 # Receives OTLP traces/metrics → Exports to Tempo (traces) + Prometheus (metrics)
 # =============================================================================
 
+image:
+  repository: "otel/opentelemetry-collector-contrib"
+
 mode: deployment
 
 replicaCount: 1

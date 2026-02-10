@@ -21,7 +21,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}/.."
 
 echo "Building OPA bundle from ${POLICY_DIR}..."
-opa build -b "${POLICY_DIR}" -o "${BUNDLE_FILE}"
+/c/tools/opa/opa build -b "${POLICY_DIR}" -o "${BUNDLE_FILE}"
 echo "Bundle contents:"
 tar tzf "${BUNDLE_FILE}"
 echo ""

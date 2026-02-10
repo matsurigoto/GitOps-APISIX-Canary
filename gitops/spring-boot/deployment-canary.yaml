@@ -28,7 +28,7 @@ spec:
       containers:
         - name: spring-boot
           # ⚠ Replace <ACR_LOGIN_SERVER> with your actual ACR login server
-          image: <ACR_LOGIN_SERVER>/spring-demo:latest
+          image: acrgitopscanaryc31ba2.azurecr.io/spring-demo:latest
           ports:
             - containerPort: 8080
               name: http
