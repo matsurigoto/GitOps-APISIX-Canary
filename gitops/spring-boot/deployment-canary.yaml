@@ -10,7 +10,7 @@ metadata:
     app: spring-boot
     version: canary
 spec:
-  replicas: 0    # ← Start with 0; scale up when canary is active
+  replicas: 2    # ← Start with 0; scale up when canary is active
   selector:
     matchLabels:
       app: spring-boot
