@@ -115,6 +115,43 @@ etcd:
     enabled: true
     size: 5Gi
 
+  # Fix: K8s 1.33 forbids multiple probe handler types.
+  # The bundled Bitnami etcd chart generates both exec + httpGet → override
+  # with custom single-handler probes.
+  livenessProbe:
+    enabled: false
+  readinessProbe:
+    enabled: false
+  startupProbe:
+    enabled: false
+  customLivenessProbe:
+    httpGet:
+      path: /health?serializable=true
+      port: 2379
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 5
+    successThreshold: 1
+  customReadinessProbe:
+    httpGet:
+      path: /health?serializable=true
+      port: 2379
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+    successThreshold: 1
+  customStartupProbe:
+    httpGet:
+      path: /health?serializable=true
+      port: 2379
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 30
+    successThreshold: 1
+
 # ── Dashboard (optional, disable for production) ─────────────────────────
 dashboard:
   enabled: false
