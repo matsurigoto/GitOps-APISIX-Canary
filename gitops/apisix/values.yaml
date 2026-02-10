@@ -115,6 +115,13 @@ etcd:
     enabled: true
     size: 5Gi
 
+  # Fix: bitnami/etcd images removed from Docker Hub → use bitnamilegacy
+  # Fix: etcd data was written at cluster-version 3.6 → must use 3.6.x
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/etcd
+    tag: 3.6.4-debian-12-r4
+
   # Fix: K8s 1.33 forbids multiple probe handler types.
   # The bundled Bitnami etcd chart generates both exec + httpGet → override
   # with custom single-handler probes.
