@@ -1,0 +1,75 @@
+name: CI/CD - Spring Boot Build & Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+  workflow_dispatch:
+
+env:
+  ACR_NAME: ${{ secrets.ACR_NAME }}
+  ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+  IMAGE_NAME: spring-demo
+
+jobs:
+  # ── Job 1: Build & Push to ACR ──────────────────────────────────────────
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      sha-short: ${{ steps.vars.outputs.sha_short }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set short SHA
+        id: vars
+        run: echo "sha_short=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Build and push Docker image
+        working-directory: app
+        run: |
+          IMAGE_TAG="${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.sha_short }}"
+          docker build -t "$IMAGE_TAG" .
+          docker push "$IMAGE_TAG"
+          echo "Pushed: $IMAGE_TAG"
+
+  # ── Job 2: Update GitOps manifests ──────────────────────────────────────
+  update-gitops:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update stable deployment image tag
+        run: |
+          SHA_SHORT="${{ needs.build-and-push.outputs.sha-short }}"
+          NEW_IMAGE="${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${SHA_SHORT}"
+
+          # Update deployment-stable.yaml
+          sed -i "s|image: .*spring-demo:.*|image: ${NEW_IMAGE}|g" \
+            gitops/spring-boot/deployment-stable.yaml
+
+          echo "Updated image to: ${NEW_IMAGE}"
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add gitops/spring-boot/deployment-stable.yaml
+          git diff --staged --quiet || {
+            git commit -m "chore: update stable image to ${{ needs.build-and-push.outputs.sha-short }}"
+            git push
+          }

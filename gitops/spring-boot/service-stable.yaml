@@ -1,0 +1,21 @@
+# =============================================================================
+# Spring Boot — Stable Service (ClusterIP, for APISIX upstream)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-boot-stable
+  namespace: app
+  labels:
+    app: spring-boot
+    version: stable
+spec:
+  type: ClusterIP
+  selector:
+    app: spring-boot
+    version: stable
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP

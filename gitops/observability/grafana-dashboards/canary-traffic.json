@@ -1,0 +1,147 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "title": "Traffic Distribution (Stable vs Canary)",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(apisix_http_status{node=~\".*stable.*\"}[5m]))",
+          "legendFormat": "Stable"
+        },
+        {
+          "expr": "sum(rate(apisix_http_status{node=~\".*canary.*\"}[5m]))",
+          "legendFormat": "Canary"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "values": ["percent", "value"] },
+        "pieType": "donut",
+        "tooltip": { "mode": "multi" }
+      }
+    },
+    {
+      "title": "QPS — Stable vs Canary",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(apisix_http_status{node=~\".*stable.*\"}[1m]))",
+          "legendFormat": "Stable QPS"
+        },
+        {
+          "expr": "sum(rate(apisix_http_status{node=~\".*canary.*\"}[1m]))",
+          "legendFormat": "Canary QPS"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable QPS" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary QPS" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "title": "Latency — Stable vs Canary (P95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", node=~\".*stable.*\"}[5m])) by (le))",
+          "legendFormat": "Stable P95"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", node=~\".*canary.*\"}[5m])) by (le))",
+          "legendFormat": "Canary P95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable P95" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary P95" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "title": "Error Rate — Stable vs Canary (5xx)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\", node=~\".*stable.*\"}[5m])) / sum(rate(apisix_http_status{node=~\".*stable.*\"}[5m])) * 100",
+          "legendFormat": "Stable 5xx %"
+        },
+        {
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\", node=~\".*canary.*\"}[5m])) / sum(rate(apisix_http_status{node=~\".*canary.*\"}[5m])) * 100",
+          "legendFormat": "Canary 5xx %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable 5xx %" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary 5xx %" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "title": "Success Rate Trend",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(apisix_http_status{code=~\"2..\", node=~\".*stable.*\"}[5m])) / sum(rate(apisix_http_status{node=~\".*stable.*\"}[5m])) * 100",
+          "legendFormat": "Stable Success %"
+        },
+        {
+          "expr": "sum(rate(apisix_http_status{code=~\"2..\", node=~\".*canary.*\"}[5m])) / sum(rate(apisix_http_status{node=~\".*canary.*\"}[5m])) * 100",
+          "legendFormat": "Canary Success %"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } }
+    },
+    {
+      "title": "Traces — Recent Requests (Tempo)",
+      "type": "traces",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "targets": [
+        {
+          "queryType": "traceql",
+          "query": "{resource.service.name=\"APISIX\" || resource.service.name=~\"demo-api.*\"}"
+        }
+      ]
+    },
+    {
+      "title": "Bandwidth — Stable vs Canary",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", node=~\".*stable.*\"}[5m]))",
+          "legendFormat": "Stable Egress"
+        },
+        {
+          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", node=~\".*canary.*\"}[5m]))",
+          "legendFormat": "Canary Egress"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps" } }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["apisix", "canary", "traffic-split"],
+  "time": { "from": "now-30m", "to": "now" },
+  "title": "Canary Traffic Split",
+  "uid": "canary-traffic"
+}

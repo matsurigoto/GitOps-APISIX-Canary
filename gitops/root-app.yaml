@@ -1,0 +1,218 @@
+# =============================================================================
+# ArgoCD ApplicationSet — App-of-Apps (Git Directory Generator)
+# =============================================================================
+# This ApplicationSet auto-discovers directories under gitops/ and creates
+# an ArgoCD Application for each one.
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: gitops-canary-apps
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/matsurigoto/GitOps-APISIX-Canary.git
+        revision: main
+        directories:
+          - path: gitops/spring-boot
+          - path: gitops/opa
+          - path: gitops/job-caller
+
+  template:
+    metadata:
+      name: '{{ .path.basename }}'
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/matsurigoto/GitOps-APISIX-Canary.git
+        targetRevision: main
+        path: '{{ .path.path }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: >-
+          {{ if eq .path.basename "spring-boot" }}app{{ else if eq .path.basename "opa" }}opa-system{{ else if eq .path.basename "job-caller" }}app{{ else }}default{{ end }}
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+---
+# =============================================================================
+# ArgoCD Application — APISIX (Helm)
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apisix
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://charts.apiseven.com
+    chart: apisix
+    targetRevision: 2.9.0
+    helm:
+      valueFiles: []
+      values: |
+        # Inline values are loaded from gitops/apisix/values.yaml via multi-source below
+  sources:
+    - repoURL: https://charts.apiseven.com
+      chart: apisix
+      targetRevision: 2.9.0
+      helm:
+        valueFiles:
+          - $values/gitops/apisix/values.yaml
+    - repoURL: https://github.com/matsurigoto/GitOps-APISIX-Canary.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ingress-apisix
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+# =============================================================================
+# ArgoCD Application — APISIX CRDs (Route, PluginConfig)
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apisix-routes
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/matsurigoto/GitOps-APISIX-Canary.git
+    targetRevision: main
+    path: gitops/apisix
+    directory:
+      include: "apisix-*.yaml"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+# =============================================================================
+# ArgoCD Application — kube-prometheus-stack (Helm)
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 67.9.0
+      helm:
+        valueFiles:
+          - $values/gitops/observability/kube-prometheus-stack/values.yaml
+    - repoURL: https://github.com/matsurigoto/GitOps-APISIX-Canary.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+# =============================================================================
+# ArgoCD Application — OpenTelemetry Collector (Helm)
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: otel-collector
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+      chart: opentelemetry-collector
+      targetRevision: 0.108.0
+      helm:
+        valueFiles:
+          - $values/gitops/observability/otel-collector/values.yaml
+    - repoURL: https://github.com/matsurigoto/GitOps-APISIX-Canary.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+# =============================================================================
+# ArgoCD Application — Grafana Tempo (Helm)
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tempo
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: tempo
+      targetRevision: 1.12.0
+      helm:
+        valueFiles:
+          - $values/gitops/observability/tempo/values.yaml
+    - repoURL: https://github.com/matsurigoto/GitOps-APISIX-Canary.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+# =============================================================================
+# ArgoCD Application — Grafana Dashboards (ConfigMaps)
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-dashboards
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/matsurigoto/GitOps-APISIX-Canary.git
+    targetRevision: main
+    path: gitops/observability/grafana-dashboards
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

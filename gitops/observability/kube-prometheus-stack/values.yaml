@@ -1,0 +1,111 @@
+# =============================================================================
+# kube-prometheus-stack Helm Values
+# Includes: Prometheus (LB), Grafana (LB), Alertmanager
+# =============================================================================
+
+# ── Prometheus ───────────────────────────────────────────────────────────
+prometheus:
+  service:
+    type: LoadBalancer
+
+  prometheusSpec:
+    # Allow ServiceMonitors from ALL namespaces
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+    serviceMonitorSelector: {}
+
+    # Allow PodMonitors from ALL namespaces
+    podMonitorSelectorNilUsesHelmValues: false
+    podMonitorNamespaceSelector: {}
+    podMonitorSelector: {}
+
+    # Retention
+    retention: 7d
+
+    # Storage
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+
+    # Scrape APISIX OTel Collector prometheus exporter
+    additionalScrapeConfigs:
+      - job_name: otel-collector
+        scrape_interval: 15s
+        static_configs:
+          - targets: ["otel-collector.observability:8889"]
+
+# ── Grafana ──────────────────────────────────────────────────────────────
+grafana:
+  service:
+    type: LoadBalancer
+
+  adminUser: admin
+  adminPassword: admin
+
+  # Sidecar auto-loads dashboards from ConfigMaps with label grafana_dashboard=1
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: false
+
+    datasources:
+      enabled: true
+
+  # Additional data sources: Tempo for traces
+  additionalDataSources:
+    - name: Tempo
+      type: tempo
+      access: proxy
+      url: http://tempo.observability:3100
+      isDefault: false
+      jsonData:
+        httpMethod: GET
+        tracesToMetrics:
+          datasourceUid: prometheus
+          tags:
+            - key: service.name
+              value: service
+            - key: http.method
+              value: method
+          queries:
+            - name: Request rate
+              query: >-
+                sum(rate(apisix_http_status{$$__tags}[5m]))
+        serviceMap:
+          datasourceUid: prometheus
+        nodeGraph:
+          enabled: true
+        tracesToLogsV2:
+          datasourceUid: ""
+        lokiSearch:
+          datasourceUid: ""
+
+  grafana.ini:
+    server:
+      root_url: "%(protocol)s://%(domain)s:%(http_port)s/"
+    auth.anonymous:
+      enabled: true
+      org_role: Viewer
+
+# ── Alertmanager ─────────────────────────────────────────────────────────
+alertmanager:
+  enabled: true
+  service:
+    type: ClusterIP
+
+# ── Node Exporter ────────────────────────────────────────────────────────
+nodeExporter:
+  enabled: true
+
+# ── kube-state-metrics ───────────────────────────────────────────────────
+kubeStateMetrics:
+  enabled: true

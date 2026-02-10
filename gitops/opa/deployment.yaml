@@ -1,0 +1,73 @@
+# =============================================================================
+# OPA Deployment — Bundle Mode with Azure Workload Identity
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opa-sa
+  namespace: opa-system
+  annotations:
+    # ⚠ Replace <OPA_CLIENT_ID> with the actual Managed Identity client ID
+    azure.workload.identity/client-id: "<OPA_CLIENT_ID>"
+  labels:
+    azure.workload.identity/use: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opa
+  namespace: opa-system
+  labels:
+    app: opa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opa
+  template:
+    metadata:
+      labels:
+        app: opa
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: opa-sa
+      containers:
+        - name: opa
+          image: openpolicyagent/opa:latest-static
+          ports:
+            - containerPort: 8181
+              name: http
+          args:
+            - "run"
+            - "--server"
+            - "--config-file=/config/opa-config.yaml"
+            - "--addr=0.0.0.0:8181"
+            - "--log-level=info"
+            - "--log-format=json"
+          volumeMounts:
+            - name: opa-config
+              mountPath: /config
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8181
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8181
+            initialDelaySeconds: 10
+            periodSeconds: 15
+      volumes:
+        - name: opa-config
+          configMap:
+            name: opa-config

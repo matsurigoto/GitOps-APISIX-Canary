@@ -1,0 +1,7 @@
+# =============================================================================
+# Kustomization — Generates ConfigMaps from dashboard JSON files
+# Auto-loaded by Grafana sidecar via label "grafana_dashboard: 1"
+# =============================================================================
+# NOTE: This file is named dashboards-configmap.yaml but is actually used
+# alongside kustomization.yaml. ArgoCD auto-detects kustomize when present.
+# =============================================================================

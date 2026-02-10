@@ -1,0 +1,55 @@
+# =============================================================================
+# API Caller — Continuous traffic generator (every 5 seconds)
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-caller
+  namespace: app
+  labels:
+    app: api-caller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-caller
+  template:
+    metadata:
+      labels:
+        app: api-caller
+    spec:
+      containers:
+        - name: caller
+          image: curlimages/curl:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Starting API caller - hitting APISIX every 5 seconds"
+              while true; do
+                TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+                # Call without canary header (goes to stable)
+                RESP=$(curl -s -w "\n%{http_code}" \
+                  http://apisix-gateway.ingress-apisix:80/api/hello 2>/dev/null)
+                HTTP_CODE=$(echo "$RESP" | tail -1)
+                BODY=$(echo "$RESP" | head -1)
+                echo "${TIMESTAMP} | stable | HTTP ${HTTP_CODE} | ${BODY}"
+
+                sleep 2
+
+                # Call with canary header (goes to canary if available)
+                RESP=$(curl -s -w "\n%{http_code}" \
+                  -H "x-canary: true" \
+                  http://apisix-gateway.ingress-apisix:80/api/hello 2>/dev/null)
+                HTTP_CODE=$(echo "$RESP" | tail -1)
+                BODY=$(echo "$RESP" | head -1)
+                echo "${TIMESTAMP} | canary | HTTP ${HTTP_CODE} | ${BODY}"
+
+                sleep 3
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi

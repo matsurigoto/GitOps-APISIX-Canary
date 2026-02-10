@@ -1,0 +1,21 @@
+# =============================================================================
+# Spring Boot — Canary Service (ClusterIP, for APISIX upstream)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-boot-canary
+  namespace: app
+  labels:
+    app: spring-boot
+    version: canary
+spec:
+  type: ClusterIP
+  selector:
+    app: spring-boot
+    version: canary
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP

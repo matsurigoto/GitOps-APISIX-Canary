@@ -1,0 +1,50 @@
+# =============================================================================
+# Grafana Tempo Helm Values — Monolithic Mode
+# =============================================================================
+
+tempo:
+  # OTLP receiver for traces
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: "0.0.0.0:4317"
+        http:
+          endpoint: "0.0.0.0:4318"
+
+  # Metrics generator (for service graph & span metrics)
+  metricsGenerator:
+    enabled: true
+    remoteWriteUrl: "http://monitoring-prometheus.observability:9090/api/v1/write"
+
+  # Storage: local filesystem (for dev/POC)
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+      wal:
+        path: /var/tempo/wal
+
+  # Retention
+  retention: 72h
+
+  # Global overrides
+  global_overrides:
+    per_tenant_override_config: ""
+    max_traces_per_user: 0
+
+persistence:
+  enabled: true
+  size: 10Gi
+
+service:
+  type: ClusterIP
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

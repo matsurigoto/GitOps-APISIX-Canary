@@ -1,0 +1,51 @@
+# =============================================================================
+# Kustomization — Grafana Dashboards as ConfigMaps
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: observability
+
+configMapGenerator:
+  - name: grafana-dashboard-apisix-overview
+    files:
+      - apisix-overview.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "GitOps Canary"
+      disableNameSuffixHash: true
+
+  - name: grafana-dashboard-apisix-route-metrics
+    files:
+      - apisix-route-metrics.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "GitOps Canary"
+      disableNameSuffixHash: true
+
+  - name: grafana-dashboard-canary-traffic
+    files:
+      - canary-traffic.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "GitOps Canary"
+      disableNameSuffixHash: true
+
+  - name: grafana-dashboard-spring-boot-metrics
+    files:
+      - spring-boot-metrics.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "GitOps Canary"
+      disableNameSuffixHash: true
+
+generatorOptions:
+  disableNameSuffixHash: true

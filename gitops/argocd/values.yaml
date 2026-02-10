@@ -1,0 +1,26 @@
+# =============================================================================
+# ArgoCD Server Helm Values
+# =============================================================================
+server:
+  service:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: /healthz
+
+  ingress:
+    enabled: false
+
+  extraArgs:
+    - --insecure  # Disable TLS on server side (LB handles it in prod)
+
+configs:
+  params:
+    server.insecure: true
+
+  repositories:
+    gitops-canary:
+      url: https://github.com/matsurigoto/GitOps-APISIX-Canary.git
+      type: git
+
+  cm:
+    timeout.reconciliation: 30s

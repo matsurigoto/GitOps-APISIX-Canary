@@ -1,0 +1,71 @@
+# =============================================================================
+# ApisixRoute — Spring Boot Canary Route with Plugins
+# =============================================================================
+# This route handles /api/* requests and forwards them to the canary-upstream
+# managed by Admin API. Plugins: prometheus, opentelemetry, opa.
+#
+# NOTE: The actual upstream nodes & weights are managed by Admin API
+# (scripts/init-canary-upstream.sh), NOT by this CRD, to avoid conflicts.
+# This CRD only defines the routing rule and plugin configuration.
+# =============================================================================
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: spring-boot-canary
+  namespace: app
+spec:
+  http:
+    # ── Primary API route ────────────────────────────────────────────────
+    - name: api-route
+      match:
+        paths:
+          - /api/*
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+      backends:
+        - serviceName: spring-boot-stable
+          servicePort: 8080
+          weight: 100
+        - serviceName: spring-boot-canary
+          servicePort: 8080
+          weight: 0
+      plugins:
+        # Prometheus metrics for this route
+        - name: prometheus
+          enable: true
+          config:
+            prefer_name: true
+        # OpenTelemetry distributed tracing
+        - name: opentelemetry
+          enable: true
+          config:
+            sampler:
+              name: always_on
+        # OPA policy check (canary decision)
+        - name: opa
+          enable: true
+          config:
+            host: "http://opa.opa-system:8181"
+            policy: "apisix/canary"
+            with_route: true
+            with_service: false
+            with_consumer: false
+
+    # ── Actuator route (direct to stable, no canary split) ───────────────
+    - name: actuator-route
+      match:
+        paths:
+          - /actuator/*
+      backends:
+        - serviceName: spring-boot-stable
+          servicePort: 8080
+          weight: 100
+      plugins:
+        - name: prometheus
+          enable: true
+          config:
+            prefer_name: true

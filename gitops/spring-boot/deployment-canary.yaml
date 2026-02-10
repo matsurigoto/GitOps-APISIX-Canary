@@ -1,0 +1,64 @@
+# =============================================================================
+# Spring Boot — Canary Deployment (v2)
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-boot-canary
+  namespace: app
+  labels:
+    app: spring-boot
+    version: canary
+spec:
+  replicas: 0    # ← Start with 0; scale up when canary is active
+  selector:
+    matchLabels:
+      app: spring-boot
+      version: canary
+  template:
+    metadata:
+      labels:
+        app: spring-boot
+        version: canary
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      containers:
+        - name: spring-boot
+          # ⚠ Replace <ACR_LOGIN_SERVER> with your actual ACR login server
+          image: <ACR_LOGIN_SERVER>/spring-demo:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: APP_VERSION
+              value: "v2"
+            - name: OTEL_SERVICE_NAME
+              value: "demo-api-canary"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.observability:4318"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "http/protobuf"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.version=v2,deployment.environment=canary"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15

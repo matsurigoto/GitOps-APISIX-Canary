@@ -1,0 +1,19 @@
+# =============================================================================
+# ApisixPluginConfig — Global plugin defaults
+# =============================================================================
+apiVersion: apisix.apache.org/v2
+kind: ApisixPluginConfig
+metadata:
+  name: global-plugins
+  namespace: app
+spec:
+  plugins:
+    - name: prometheus
+      enable: true
+      config:
+        prefer_name: true
+    - name: opentelemetry
+      enable: true
+      config:
+        sampler:
+          name: always_on

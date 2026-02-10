@@ -1,0 +1,19 @@
+# =============================================================================
+# OPA Service — ClusterIP (only accessible within the cluster)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: opa
+  namespace: opa-system
+  labels:
+    app: opa
+spec:
+  type: ClusterIP
+  selector:
+    app: opa
+  ports:
+    - name: http
+      port: 8181
+      targetPort: 8181
+      protocol: TCP
