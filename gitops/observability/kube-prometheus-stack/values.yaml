@@ -59,11 +59,13 @@ grafana:
 
     datasources:
       enabled: true
+      uid: prometheus        # ← Must match dashboard JSON datasource uid
 
   # Additional data sources: Tempo for traces
   additionalDataSources:
     - name: Tempo
       type: tempo
+      uid: tempo              # ← Must match dashboard JSON datasource uid
       access: proxy
       url: http://tempo.observability:3100
       isDefault: false

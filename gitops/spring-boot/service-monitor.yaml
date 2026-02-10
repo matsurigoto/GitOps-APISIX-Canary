@@ -41,7 +41,7 @@ spec:
     matchNames:
       - ingress-apisix
   endpoints:
-    - port: prometheus
+    - targetPort: 9091
       path: /apisix/prometheus/metrics
       interval: 15s
       scrapeTimeout: 10s
