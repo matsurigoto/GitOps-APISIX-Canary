@@ -106,6 +106,8 @@ ingress-controller:
     apisix:
       adminAPIVersion: v3
       serviceNamespace: ingress-apisix
+  service:
+    type: LoadBalancer
 
 # ── etcd ──────────────────────────────────────────────────────────────────
 etcd:
