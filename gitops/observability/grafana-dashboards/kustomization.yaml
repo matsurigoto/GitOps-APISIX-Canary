@@ -47,5 +47,75 @@ configMapGenerator:
         grafana_folder: "GitOps Canary"
       disableNameSuffixHash: true
 
+  - name: grafana-dashboard-apisix-node-metrics
+    files:
+      - apisix-node-metrics.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "GitOps Canary"
+      disableNameSuffixHash: true
+
+  - name: grafana-dashboard-apisix-upstream-health
+    files:
+      - apisix-upstream-health.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "GitOps Canary"
+      disableNameSuffixHash: true
+
+  - name: grafana-dashboard-apisix-security
+    files:
+      - apisix-security.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "GitOps Canary"
+      disableNameSuffixHash: true
+
+  - name: grafana-dashboard-apisix-ssl-certs
+    files:
+      - apisix-ssl-certs.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "GitOps Canary"
+      disableNameSuffixHash: true
+
+  - name: grafana-dashboard-apisix-plugins
+    files:
+      - apisix-plugins.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "GitOps Canary"
+      disableNameSuffixHash: true
+
+  - name: grafana-dashboard-apisix-nginx
+    files:
+      - apisix-nginx.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "GitOps Canary"
+      disableNameSuffixHash: true
+
+  - name: grafana-dashboard-apisix-performance
+    files:
+      - apisix-performance.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "GitOps Canary"
+      disableNameSuffixHash: true
+
 generatorOptions:
   disableNameSuffixHash: true
