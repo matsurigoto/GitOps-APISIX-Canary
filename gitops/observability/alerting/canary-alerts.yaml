@@ -1,0 +1,257 @@
+# =============================================================================
+# Prometheus Alert Rules — Canary Deployment Observability
+# =============================================================================
+# These alert rules provide observability for canary deployments.
+# Deploy as part of kube-prometheus-stack additionalPrometheusRules.
+#
+# Usage in values.yaml:
+#   additionalPrometheusRulesMap:
+#     canary-alerts:
+#       groups:
+#         - <paste groups below>
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: canary-deployment-alerts
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+    app: kube-prometheus-stack
+spec:
+  groups:
+    # ── Canary Error Rate Alerts ─────────────────────────────────────────
+    - name: canary.error-rate
+      rules:
+        # 🔴 Critical: Canary 5xx error rate > 5% for 2 minutes
+        - alert: CanaryHighErrorRate
+          expr: |
+            (
+              sum(rate(apisix_http_status{route=~".*canary.*", code=~"5.."}[5m]))
+              / sum(rate(apisix_http_status{route=~".*canary.*"}[5m]))
+            ) > 0.05
+          for: 2m
+          labels:
+            severity: critical
+            team: platform
+            component: canary
+          annotations:
+            summary: "Canary 5xx 錯誤率超過 5%"
+            description: |
+              Canary 版本的 5xx 錯誤率為 {{ $value | humanizePercentage }}，超過 5% 閾值。
+              建議立即回滾至 stable 版本。
+            runbook_url: "https://github.com/matsurigoto/GitOps-APISIX-Canary#rollback"
+            runbook: |
+              1. 確認 canary 版本狀態: kubectl get pods -n app -l version=canary
+              2. 執行回滾: ./scripts/canary-switch.sh --stable 100 --canary 0
+              3. 檢查 Grafana Canary Traffic Split Dashboard 確認流量已切回
+
+        # 🟡 Warning: Canary 5xx error rate > 1% for 5 minutes
+        - alert: CanaryElevatedErrorRate
+          expr: |
+            (
+              sum(rate(apisix_http_status{route=~".*canary.*", code=~"5.."}[5m]))
+              / sum(rate(apisix_http_status{route=~".*canary.*"}[5m]))
+            ) > 0.01
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+            component: canary
+          annotations:
+            summary: "Canary 5xx 錯誤率超過 1%"
+            description: |
+              Canary 版本的 5xx 錯誤率為 {{ $value | humanizePercentage }}，超過 1% 警告閾值。
+              請關注 Canary Traffic Split Dashboard，考慮暫停流量增加。
+            runbook: |
+              1. 查看 Grafana Canary Traffic Split Dashboard
+              2. 暫停流量增加操作
+              3. 如持續升高，執行回滾: ./scripts/canary-switch.sh --stable 100 --canary 0
+
+    # ── Canary Latency Alerts ────────────────────────────────────────────
+    - name: canary.latency
+      rules:
+        # 🔴 Critical: Canary P95 latency > 1 second for 3 minutes
+        - alert: CanaryHighLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(apisix_http_latency_bucket{type="request", route=~".*canary.*"}[5m])) by (le)
+            ) > 1000
+          for: 3m
+          labels:
+            severity: critical
+            team: platform
+            component: canary
+          annotations:
+            summary: "Canary P95 延遲超過 1 秒"
+            description: |
+              Canary 版本的 P95 延遲為 {{ $value }}ms，超過 1000ms 閾值。
+              建議立即回滾至 stable 版本。
+            runbook: |
+              1. 查看 Grafana Canary Traffic Split Dashboard 確認延遲趨勢
+              2. 檢查 Tempo traces 找出慢請求根因
+              3. 執行回滾: ./scripts/canary-switch.sh --stable 100 --canary 0
+
+        # 🟡 Warning: Canary P95 latency > 500ms for 5 minutes
+        - alert: CanaryElevatedLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(apisix_http_latency_bucket{type="request", route=~".*canary.*"}[5m])) by (le)
+            ) > 500
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+            component: canary
+          annotations:
+            summary: "Canary P95 延遲超過 500ms"
+            description: |
+              Canary 版本的 P95 延遲為 {{ $value }}ms，超過 500ms 警告閾值。
+              請關注延遲趨勢，考慮暫停流量增加。
+
+    # ── Canary vs Stable Comparison Alerts ───────────────────────────────
+    - name: canary.comparison
+      rules:
+        # 🟡 Warning: Canary latency > Stable latency * 1.5
+        - alert: CanaryLatencyDrift
+          expr: |
+            (
+              histogram_quantile(0.95,
+                sum(rate(apisix_http_latency_bucket{type="request", route=~".*canary.*"}[5m])) by (le))
+              /
+              histogram_quantile(0.95,
+                sum(rate(apisix_http_latency_bucket{type="request", route=~".*stable.*"}[5m])) by (le))
+            ) > 1.5
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+            component: canary
+          annotations:
+            summary: "Canary 延遲顯著高於 Stable"
+            description: |
+              Canary 版本的 P95 延遲比 Stable 版本高 {{ $value | humanize }}x。
+              超過 1.5x 的差異可能表示新版本有效能問題。
+            runbook: |
+              1. 查看 Grafana Canary Traffic Split Dashboard 比較延遲曲線
+              2. 暫停流量增加
+              3. 使用 Tempo 追蹤比較 stable 和 canary 的請求鏈路
+              4. 如差距持續擴大，執行回滾
+
+        # 🔴 Critical: Canary error rate significantly higher than Stable
+        - alert: CanaryErrorRateDrift
+          expr: |
+            (
+              sum(rate(apisix_http_status{route=~".*canary.*", code=~"5.."}[5m]))
+              / sum(rate(apisix_http_status{route=~".*canary.*"}[5m]))
+            )
+            >
+            (
+              sum(rate(apisix_http_status{route=~".*stable.*", code=~"5.."}[5m]))
+              / sum(rate(apisix_http_status{route=~".*stable.*"}[5m]))
+            ) * 5
+          for: 3m
+          labels:
+            severity: critical
+            team: platform
+            component: canary
+          annotations:
+            summary: "Canary 錯誤率遠高於 Stable"
+            description: |
+              Canary 版本的錯誤率是 Stable 版本的 5 倍以上。
+              強烈建議立即回滾。
+            runbook: |
+              1. 執行回滾: ./scripts/canary-switch.sh --stable 100 --canary 0
+              2. 查看 Grafana Dashboard 確認錯誤率恢復
+              3. 檢查 canary 版本的日誌和 traces 找出根因
+
+    # ── Traffic Anomaly Alerts ───────────────────────────────────────────
+    - name: canary.traffic
+      rules:
+        # 🟡 Warning: Canary traffic suddenly dropped to zero
+        - alert: CanaryTrafficDropped
+          expr: |
+            sum(rate(apisix_http_status{route=~".*canary.*"}[5m])) == 0
+            and
+            sum(rate(apisix_http_status{route=~".*canary.*"}[5m] offset 10m)) > 0
+          for: 2m
+          labels:
+            severity: warning
+            team: platform
+            component: canary
+          annotations:
+            summary: "Canary 流量突然歸零"
+            description: |
+              Canary 版本在過去 5 分鐘沒有任何流量，但 10 分鐘前有流量。
+              可能是 upstream 健康檢查失敗或配置被意外修改。
+            runbook: |
+              1. 檢查 canary pods 狀態: kubectl get pods -n app -l version=canary
+              2. 檢查 APISIX upstream 配置: curl http://apisix-admin:9180/apisix/admin/upstreams
+              3. 檢查 OPA 策略是否正常: curl http://opa:8181/v1/data/apisix/canary
+
+        # 🟡 Warning: Unexpected traffic spike to canary
+        - alert: CanaryTrafficSpike
+          expr: |
+            (
+              sum(rate(apisix_http_status{route=~".*canary.*"}[5m]))
+              / sum(rate(apisix_http_status[5m]))
+            ) > 0.8
+            and
+            (
+              sum(rate(apisix_http_status{route=~".*canary.*"}[5m] offset 10m))
+              / sum(rate(apisix_http_status[5m] offset 10m))
+            ) < 0.3
+          for: 1m
+          labels:
+            severity: warning
+            team: platform
+            component: canary
+          annotations:
+            summary: "Canary 流量異常暴增"
+            description: |
+              Canary 流量從 10 分鐘前的 < 30% 突然增加到 > 80%。
+              可能是 canary-switch.sh 參數錯誤或配置異常。
+            runbook: |
+              1. 確認是否為預期操作
+              2. 如非預期，執行回滾: ./scripts/canary-switch.sh --stable 100 --canary 0
+              3. 檢查最近的配置變更紀錄
+
+    # ── Upstream Health Alerts ───────────────────────────────────────────
+    - name: canary.upstream
+      rules:
+        # 🔴 Critical: Upstream health check failed
+        - alert: UpstreamUnhealthy
+          expr: |
+            apisix_upstream_status == 0
+          for: 1m
+          labels:
+            severity: critical
+            team: platform
+            component: upstream
+          annotations:
+            summary: "APISIX 上游服務不健康"
+            description: |
+              APISIX 上游服務健康檢查失敗。可能影響用戶請求。
+            runbook: |
+              1. 檢查 pods 狀態: kubectl get pods -n app
+              2. 檢查服務端點: kubectl get endpoints -n app
+              3. 查看 pod 日誌: kubectl logs -n app -l app=spring-boot
+              4. 檢查 APISIX Upstream Health Dashboard
+
+        # 🔴 Critical: APISIX etcd unreachable
+        - alert: APISIXEtcdUnreachable
+          expr: |
+            apisix_etcd_reachable == 0
+          for: 1m
+          labels:
+            severity: critical
+            team: platform
+            component: apisix
+          annotations:
+            summary: "APISIX 無法連接 etcd"
+            description: |
+              APISIX 無法連接 etcd 配置存儲，可能導致路由配置無法更新。
+            runbook: |
+              1. 檢查 etcd pod: kubectl get pods -n ingress-apisix -l app=etcd
+              2. 檢查 etcd 日誌: kubectl logs -n ingress-apisix -l app=etcd
+              3. 確認 etcd PVC 空間是否充足
