@@ -228,6 +228,37 @@ kubectl get svc -A | grep LoadBalancer
 | Admin API | Upstream 節點權重 (canary 比例) | 命令式、即時生效 |
 | OPA (Blob Storage bundle) | Header-based 路由決策 | 自動 polling 更新 |
 
+## 📚 文件
+
+| 文件 | 說明 |
+|------|------|
+| [PRESENTATION-ZH.md](PRESENTATION-ZH.md) | 🎤 演講簡報規劃 — 40 分鐘議程大綱（可觀測性研討會） |
+| [docs/SPEAKER-NOTES-ZH.md](docs/SPEAKER-NOTES-ZH.md) | 📝 講者筆記 — 每張投影片的詳細講稿與 Q&A 準備 |
+| [MONITORING-DASHBOARDS-ZH.md](MONITORING-DASHBOARDS-ZH.md) | 📊 Grafana 儀表板擴充說明 |
+| [METRICS-QUICK-REFERENCE.md](METRICS-QUICK-REFERENCE.md) | 📈 Prometheus 指標快速參考 |
+
+## Canary 告警規則
+
+本專案提供 Prometheus 告警規則以增強金絲雀佈署的可觀測性：
+
+```bash
+# 告警規則檔案
+gitops/observability/alerting/canary-alerts.yaml
+```
+
+| Alert | 條件 | 嚴重性 |
+|-------|------|--------|
+| `CanaryHighErrorRate` | Canary 5xx > 5% 持續 2 分鐘 | 🔴 critical |
+| `CanaryElevatedErrorRate` | Canary 5xx > 1% 持續 5 分鐘 | 🟡 warning |
+| `CanaryHighLatency` | Canary P95 > 1s 持續 3 分鐘 | 🔴 critical |
+| `CanaryElevatedLatency` | Canary P95 > 500ms 持續 5 分鐘 | 🟡 warning |
+| `CanaryLatencyDrift` | Canary 延遲 > Stable × 1.5 持續 5 分鐘 | 🟡 warning |
+| `CanaryErrorRateDrift` | Canary 錯誤率 > Stable × 5 持續 3 分鐘 | 🔴 critical |
+| `CanaryTrafficDropped` | Canary 流量突然歸零 | 🟡 warning |
+| `CanaryTrafficSpike` | Canary 流量異常暴增 | 🟡 warning |
+| `UpstreamUnhealthy` | 上游服務健康檢查失敗 | 🔴 critical |
+| `APISIXEtcdUnreachable` | APISIX 無法連接 etcd | 🔴 critical |
+
 ## 需要替換的 placeholder
 
 部署前需替換以下佔位符：
