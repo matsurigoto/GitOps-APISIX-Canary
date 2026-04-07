@@ -78,15 +78,22 @@ if [[ "$HTTP_CODE" == "200" || "$HTTP_CODE" == "201" ]]; then
     sed -i -E '/name: api-route/,/name: actuator-route/{/serviceName: spring-boot-stable/{n;n;s/weight: [0-9]+/weight: '"${STABLE_WEIGHT}"'/;}}' "$ROUTE_YAML"
     sed -i -E '/name: api-route/,/name: actuator-route/{/serviceName: spring-boot-canary/{n;n;s/weight: [0-9]+/weight: '"${CANARY_WEIGHT}"'/;}}' "$ROUTE_YAML"
 
+    # Validate that the sed replacements actually occurred
+    if ! grep -A2 'serviceName: spring-boot-stable' "$ROUTE_YAML" | head -3 | grep -q "weight: ${STABLE_WEIGHT}"; then
+      echo "⚠️  Warning: stable weight update may not have applied correctly."
+    fi
+    if ! grep -A2 'serviceName: spring-boot-canary' "$ROUTE_YAML" | head -3 | grep -q "weight: ${CANARY_WEIGHT}"; then
+      echo "⚠️  Warning: canary weight update may not have applied correctly."
+    fi
+
     # Commit and push if there are changes
     if command -v git &>/dev/null && git -C "$REPO_ROOT" rev-parse --is-inside-work-tree &>/dev/null; then
-      cd "$REPO_ROOT"
-      git config user.name  "${GIT_USER_NAME:-github-actions[bot]}"
-      git config user.email "${GIT_USER_EMAIL:-github-actions[bot]@users.noreply.github.com}"
-      git add "$ROUTE_YAML"
-      if ! git diff --staged --quiet; then
-        git commit -m "chore: canary weight stable=${STABLE_WEIGHT} canary=${CANARY_WEIGHT}"
-        git push && echo "✅ GitOps manifest committed and pushed." || echo "⚠️  git push failed (non-fatal)."
+      git -C "$REPO_ROOT" config user.name  "${GIT_USER_NAME:-github-actions[bot]}"
+      git -C "$REPO_ROOT" config user.email "${GIT_USER_EMAIL:-github-actions[bot]@users.noreply.github.com}"
+      git -C "$REPO_ROOT" add "$ROUTE_YAML"
+      if ! git -C "$REPO_ROOT" diff --staged --quiet; then
+        git -C "$REPO_ROOT" commit -m "chore: canary weight stable=${STABLE_WEIGHT} canary=${CANARY_WEIGHT}"
+        git -C "$REPO_ROOT" push && echo "✅ GitOps manifest committed and pushed." || echo "⚠️  git push failed (non-fatal)."
       else
         echo "ℹ️  No changes to commit (weights already match)."
       fi
