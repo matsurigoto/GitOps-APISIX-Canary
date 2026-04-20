@@ -68,20 +68,11 @@ helm install argocd argo/argo-cd \
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 ```
 
-### 3. 安裝 APISIX (含 Ingress Controller)
-
-```bash
-helm repo add apisix https://charts.apiseven.com
-helm repo update
-helm install apisix apisix/apisix \
-  -n ingress-apisix --create-namespace \
-  -f gitops/apisix/values.yaml
-```
-
-### 4. 安裝可觀測性堆疊
+### 3. 安裝可觀測性堆疊 (必須先於 APISIX)
 
 ```bash
 # kube-prometheus-stack (Prometheus + Grafana)
+# 必須先安裝以提供 ServiceMonitor CRD
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm install monitoring prometheus-community/kube-prometheus-stack \
   -n observability --create-namespace \
@@ -98,6 +89,16 @@ helm repo add grafana https://grafana.github.io/helm-charts
 helm install tempo grafana/tempo \
   -n observability \
   -f gitops/observability/tempo/values.yaml
+```
+
+### 4. 安裝 APISIX (含 Ingress Controller)
+
+```bash
+helm repo add apisix https://charts.apiseven.com
+helm repo update
+helm install apisix apisix/apisix \
+  -n ingress-apisix --create-namespace \
+  -f gitops/apisix/values.yaml
 ```
 
 ### 5. 部署 ArgoCD Root App
