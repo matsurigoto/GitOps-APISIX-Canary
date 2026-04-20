@@ -65,6 +65,58 @@ if [[ "$HTTP_CODE" == "200" || "$HTTP_CODE" == "201" ]]; then
     echo "  stable : ${STABLE_PCT}% (weight ${STABLE_WEIGHT})"
     echo "  canary : ${CANARY_PCT}% (weight ${CANARY_WEIGHT})"
   fi
+
+  # ── Layer 1: Update GitOps manifest and commit ──────────────────────────
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+  ROUTE_YAML="${REPO_ROOT}/gitops/apisix/apisix-route.yaml"
+
+  if [[ -f "$ROUTE_YAML" ]]; then
+    echo ""
+    echo "Updating GitOps manifest: ${ROUTE_YAML}"
+    # Update only the api-route section (not actuator-route)
+    sed -i -E '/name: api-route/,/name: actuator-route/{/serviceName: spring-boot-stable/{n;n;s/weight: [0-9]+/weight: '"${STABLE_WEIGHT}"'/;}}' "$ROUTE_YAML"
+    sed -i -E '/name: api-route/,/name: actuator-route/{/serviceName: spring-boot-canary/{n;n;s/weight: [0-9]+/weight: '"${CANARY_WEIGHT}"'/;}}' "$ROUTE_YAML"
+
+    # Validate that the sed replacements actually occurred
+    if ! grep -A2 'serviceName: spring-boot-stable' "$ROUTE_YAML" | head -3 | grep -q "weight: ${STABLE_WEIGHT}"; then
+      echo "⚠️  Warning: stable weight update may not have applied correctly."
+    fi
+    if ! grep -A2 'serviceName: spring-boot-canary' "$ROUTE_YAML" | head -3 | grep -q "weight: ${CANARY_WEIGHT}"; then
+      echo "⚠️  Warning: canary weight update may not have applied correctly."
+    fi
+
+    # Commit and push if there are changes
+    if command -v git &>/dev/null && git -C "$REPO_ROOT" rev-parse --is-inside-work-tree &>/dev/null; then
+      git -C "$REPO_ROOT" config user.name  "${GIT_USER_NAME:-github-actions[bot]}"
+      git -C "$REPO_ROOT" config user.email "${GIT_USER_EMAIL:-github-actions[bot]@users.noreply.github.com}"
+      git -C "$REPO_ROOT" add "$ROUTE_YAML"
+      if ! git -C "$REPO_ROOT" diff --staged --quiet; then
+        git -C "$REPO_ROOT" commit -m "chore: canary weight stable=${STABLE_WEIGHT} canary=${CANARY_WEIGHT}"
+        git -C "$REPO_ROOT" push && echo "✅ GitOps manifest committed and pushed." || echo "⚠️  git push failed (non-fatal)."
+      else
+        echo "ℹ️  No changes to commit (weights already match)."
+      fi
+    fi
+  fi
+
+  # ── Layer 2: Grafana annotation (optional) ──────────────────────────────
+  GRAFANA_URL="${GRAFANA_URL:-}"
+  GRAFANA_API_KEY="${GRAFANA_API_KEY:-}"
+  if [[ -n "$GRAFANA_URL" && -n "$GRAFANA_API_KEY" ]]; then
+    echo ""
+    echo "Creating Grafana annotation..."
+    ANNOTATION_TEXT="Canary switch: stable=${STABLE_WEIGHT} canary=${CANARY_WEIGHT}"
+    curl -s -o /dev/null -w "Grafana annotation: HTTP %{http_code}\n" \
+      "${GRAFANA_URL}/api/annotations" \
+      -H "Authorization: Bearer ${GRAFANA_API_KEY}" \
+      -H "Content-Type: application/json" \
+      -X POST \
+      -d "{
+        \"text\": \"${ANNOTATION_TEXT}\",
+        \"tags\": [\"canary\", \"weight-switch\"]
+      }" 2>/dev/null || echo "⚠️  Grafana annotation skipped (not reachable)."
+  fi
 else
   echo "❌ Failed! HTTP ${HTTP_CODE}"
   echo "$BODY"
