@@ -2,8 +2,8 @@
 # APISIX Helm Values — Traditional Mode (Admin API + Ingress Controller)
 # =============================================================================
 
-# ── Gateway (Data Plane) ──────────────────────────────────────────────────
-gateway:
+# ── Service (Gateway exposure) ────────────────────────────────────────────
+service:
   type: LoadBalancer
   http:
     enabled: true
