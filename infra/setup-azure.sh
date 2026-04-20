@@ -137,15 +137,6 @@ STORAGE_ACCOUNT_ID=$(az storage account show \
   --resource-group "$RESOURCE_GROUP" \
   --query id -o tsv)
 
-echo "   Storage Account ID: $STORAGE_ACCOUNT_ID"
-
-az role assignment create \
-  --assignee-object-id "$OPA_PRINCIPAL_ID" \
-  --assignee-principal-type ServicePrincipal \
-  --role "Storage Blob Data Reader" \
-  --scope "$STORAGE_ACCOUNT_ID" \
-  --output table 
-
 # ── 9. Create Federated Identity Credential (Workload Identity) ───────────
 echo "▶ [9/10] Creating Federated Identity Credential..."
 az identity federated-credential create \
@@ -210,3 +201,14 @@ echo "  export STORAGE_ACCOUNT=$STORAGE_ACCOUNT"
 echo "  export STORAGE_ACCOUNT_URL=$STORAGE_ACCOUNT_URL"
 echo "  export OPA_CLIENT_ID=$OPA_CLIENT_ID"
 echo "  export AKS_OIDC_ISSUER=$AKS_OIDC_ISSUER"
+
+
+
+echo "   Storage Account ID: $STORAGE_ACCOUNT_ID"
+
+az role assignment create \
+  --assignee-object-id "$OPA_PRINCIPAL_ID" \
+  --assignee-principal-type ServicePrincipal \
+  --role "Storage Blob Data Reader" \
+  --scope "$STORAGE_ACCOUNT_ID" \
+  --output table 
