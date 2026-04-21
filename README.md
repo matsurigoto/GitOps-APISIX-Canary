@@ -137,6 +137,11 @@ chmod +x scripts/upload-opa-bundle.sh
 ./scripts/upload-opa-bundle.sh
 ```
 
+**注意**：OPA plugin 預設已停用。若要啟用 header-based canary routing：
+1. 確保 OPA 已部署到 `opa-system` namespace
+2. 確認 OPA bundle 已上傳並載入
+3. 在 `gitops/apisix/apisix-route.yaml` 中取消註解 OPA plugin 設定
+
 ### 8. 初始化 Admin API Upstream
 
 ```bash
@@ -182,12 +187,19 @@ kubectl scale deployment spring-boot-canary -n app --replicas=0
 
 ### OPA Header-based Canary
 
-即使 weight 是 100:0，也可以透過 header 強制路由到 canary：
+**注意**：OPA plugin 預設已停用，需要先完成以下步驟才能啟用：
+
+1. 部署 OPA 到 `opa-system` namespace
+2. 上傳並載入 OPA bundle
+3. 在 `gitops/apisix/apisix-route.yaml` 中取消註解 OPA plugin
+4. 重新部署 ApisixRoute
+
+啟用後，即使 weight 是 100:0，也可以透過 header 強制路由到 canary：
 ```bash
 # 走 stable
 curl http://<APISIX_LB_IP>/api/hello
 
-# 強制走 canary
+# 強制走 canary (需要先啟用 OPA plugin)
 curl -H "x-canary: true" http://<APISIX_LB_IP>/api/hello
 ```
 
