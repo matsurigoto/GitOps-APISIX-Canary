@@ -204,6 +204,7 @@ kubectl get svc -A | grep LoadBalancer
 | APISIX Route Metrics | 各 Route 的 QPS、延遲分佈、HTTP 狀態碼、upstream vs apisix 延遲 |
 | Canary Traffic Split | Stable vs Canary 流量對比 (pie chart)、QPS/延遲/錯誤率雙軸圖、Tempo trace 面板 |
 | Spring Boot Metrics | JVM heap/non-heap、GC pause、HTTP duration、Thread count、CPU |
+| SLO Dashboard | 可用性/延遲 SLI 儀表盤、Error Budget 剩餘量、多視窗 Burn Rate 趨勢 |
 
 ## GitHub Actions
 
@@ -237,6 +238,35 @@ kubectl get svc -A | grep LoadBalancer
 | [docs/SPEAKER-NOTES-ZH.md](docs/SPEAKER-NOTES-ZH.md) | 📝 講者筆記 — 每張投影片的詳細講稿與 Q&A 準備 |
 | [MONITORING-DASHBOARDS-ZH.md](MONITORING-DASHBOARDS-ZH.md) | 📊 Grafana 儀表板擴充說明 |
 | [METRICS-QUICK-REFERENCE.md](METRICS-QUICK-REFERENCE.md) | 📈 Prometheus 指標快速參考 |
+
+## SLO 指標
+
+本專案實作完整的 SLO 可觀測性，基於 Google SRE Book 的多視窗 Error Budget Burn Rate 策略。
+
+### SLO 定義
+
+| SLO | 目標 | SLI 計算方式 |
+|-----|------|--------------|
+| 可用性 | 99.5% | 非 5xx 請求數 / 總請求數 |
+| 延遲 | 95% 請求 < 500ms | P95 < 500ms 請求數 / 總請求數 |
+
+### Error Budget Burn Rate 告警
+
+| Alert | 視窗 | Burn Rate 閾值 | 嚴重性 | 意義 |
+|-------|------|----------------|--------|------|
+| `SLOErrorBudgetBurnRateCritical` | 1h | > 14.4x | 🔴 critical | 2 小時內耗盡 error budget |
+| `SLOErrorBudgetBurnRateFast` | 6h | > 6x | 🔴 critical | 數小時內大量消耗 |
+| `SLOErrorBudgetBurnRateSlow` | 3d | > 3x | 🟡 warning | 月底前可能耗盡 |
+| `CanarySLOViolation` | 1h | > 10x (canary) | 🟡 warning | Canary 快速消耗 error budget |
+| `SLOLatencyBudgetBurnRateCritical` | 1h | > 14.4x | 🔴 critical | 延遲 SLO 快速違規 |
+| `SLOLatencyBudgetBurnRateWarning` | 6h | > 6x | 🟡 warning | 延遲 SLO 消耗偏高 |
+
+### SLO 相關檔案
+
+```bash
+gitops/observability/alerting/slo-rules.yaml          # SLI Recording Rules + Burn Rate 告警
+gitops/observability/grafana-dashboards/slo-dashboard.json  # Grafana SLO Dashboard
+```
 
 ## Canary 告警規則
 

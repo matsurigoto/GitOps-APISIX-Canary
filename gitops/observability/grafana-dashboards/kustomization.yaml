@@ -117,5 +117,15 @@ configMapGenerator:
         grafana_folder: "GitOps Canary"
       disableNameSuffixHash: true
 
+  - name: grafana-dashboard-slo
+    files:
+      - slo-dashboard.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "GitOps Canary"
+      disableNameSuffixHash: true
+
 generatorOptions:
   disableNameSuffixHash: true

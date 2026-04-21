@@ -1,0 +1,265 @@
+# =============================================================================
+# Prometheus SLO Rules — SLI Recording Rules + Error Budget Burn Rate Alerts
+# =============================================================================
+# SLO 定義:
+#   - 可用性 SLO: 99.5% (每月允許 ~3.6 小時停機)
+#   - 延遲 SLO:   95% 的請求 < 500ms
+#
+# 多視窗 Burn Rate 告警 (Google SRE Book):
+#   - 2%  burn rate × 1h  = 2 小時內消耗 2% error budget  → page (critical)
+#   - 5%  burn rate × 6h  = 6 小時內消耗 5% error budget  → page (critical)
+#   - 10% burn rate × 3d  = 3 天內消耗 10% error budget   → ticket (warning)
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: slo-rules
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+    app: kube-prometheus-stack
+spec:
+  groups:
+    # ── SLI Recording Rules ──────────────────────────────────────────────
+    - name: slo.sli-recording
+      interval: 30s
+      rules:
+        # ── 可用性 SLI (Availability) ────────────────────────────────────
+
+        # Stable: 成功請求率 (非 5xx)
+        - record: sli:availability:ratio_rate5m
+          expr: |
+            label_replace(
+              sum(rate(apisix_http_status{node=~".*stable.*", code!~"5.."}[5m]))
+              / sum(rate(apisix_http_status{node=~".*stable.*"}[5m])),
+              "version", "stable", "", ""
+            )
+
+        # Canary: 成功請求率 (非 5xx)
+        - record: sli:availability:ratio_rate5m
+          expr: |
+            label_replace(
+              sum(rate(apisix_http_status{node=~".*canary.*", code!~"5.."}[5m]))
+              / sum(rate(apisix_http_status{node=~".*canary.*"}[5m])),
+              "version", "canary", "", ""
+            )
+
+        # Overall (所有流量): 成功請求率
+        - record: sli:availability:ratio_rate5m
+          expr: |
+            label_replace(
+              sum(rate(apisix_http_status{code!~"5.."}[5m]))
+              / sum(rate(apisix_http_status{}[5m])),
+              "version", "overall", "", ""
+            )
+
+        # ── 延遲 SLI (Latency P95 < 500ms) ──────────────────────────────
+
+        # Stable: 延遲達標請求率 (P95 < 500ms)
+        - record: sli:latency_p95_500ms:ratio_rate5m
+          expr: |
+            label_replace(
+              sum(rate(apisix_http_latency_bucket{type="request", node=~".*stable.*", le="500"}[5m]))
+              / sum(rate(apisix_http_latency_count{type="request", node=~".*stable.*"}[5m])),
+              "version", "stable", "", ""
+            )
+
+        # Canary: 延遲達標請求率 (P95 < 500ms)
+        - record: sli:latency_p95_500ms:ratio_rate5m
+          expr: |
+            label_replace(
+              sum(rate(apisix_http_latency_bucket{type="request", node=~".*canary.*", le="500"}[5m]))
+              / sum(rate(apisix_http_latency_count{type="request", node=~".*canary.*"}[5m])),
+              "version", "canary", "", ""
+            )
+
+        # Overall: 延遲達標請求率
+        - record: sli:latency_p95_500ms:ratio_rate5m
+          expr: |
+            label_replace(
+              sum(rate(apisix_http_latency_bucket{type="request", le="500"}[5m]))
+              / sum(rate(apisix_http_latency_count{type="request"}[5m])),
+              "version", "overall", "", ""
+            )
+
+        # ── Error Budget 消耗率 (多視窗) ─────────────────────────────────
+        # SLO 目標: 99.5% 可用性 → error_budget = 0.005
+
+        # 1 小時視窗 burn rate
+        - record: slo:error_budget:burn_rate1h
+          expr: |
+            (1 - sum(rate(apisix_http_status{code!~"5.."}[1h]))
+                 / sum(rate(apisix_http_status{}[1h])))
+            / 0.005
+
+        # 6 小時視窗 burn rate
+        - record: slo:error_budget:burn_rate6h
+          expr: |
+            (1 - sum(rate(apisix_http_status{code!~"5.."}[6h]))
+                 / sum(rate(apisix_http_status{}[6h])))
+            / 0.005
+
+        # 3 天視窗 burn rate
+        - record: slo:error_budget:burn_rate3d
+          expr: |
+            (1 - sum(rate(apisix_http_status{code!~"5.."}[3d]))
+                 / sum(rate(apisix_http_status{}[3d])))
+            / 0.005
+
+        # Canary 可用性 1 小時 burn rate
+        - record: slo:error_budget:canary_burn_rate1h
+          expr: |
+            (1 - sum(rate(apisix_http_status{node=~".*canary.*", code!~"5.."}[1h]))
+                 / sum(rate(apisix_http_status{node=~".*canary.*"}[1h])))
+            / 0.005
+
+        # ── Error Budget 剩餘量 (月度) ────────────────────────────────────
+        # 30 天滾動視窗
+        - record: slo:error_budget:remaining_30d
+          expr: |
+            1 - (
+              (1 - sum(rate(apisix_http_status{code!~"5.."}[30d]))
+                   / sum(rate(apisix_http_status{}[30d])))
+              / 0.005
+            )
+
+    # ── SLO Burn Rate Alerts (多視窗策略) ───────────────────────────────
+    - name: slo.burn-rate-alerts
+      rules:
+        # 🔴 Critical: 高 burn rate (快速消耗 error budget)
+        # 條件: 1h burn rate > 14.4 AND 5m burn rate > 14.4
+        # 意義: 照此速度，1 小時內會消耗 1 小時的 error budget × 14.4 倍
+        - alert: SLOErrorBudgetBurnRateCritical
+          expr: |
+            slo:error_budget:burn_rate1h > 14.4
+            and
+            (1 - sum(rate(apisix_http_status{code!~"5.."}[5m]))
+                 / sum(rate(apisix_http_status{}[5m])))
+            / 0.005 > 14.4
+          for: 2m
+          labels:
+            severity: critical
+            team: platform
+            slo: availability
+            window: "1h"
+          annotations:
+            summary: "🔴 SLO Error Budget 快速消耗 (1 小時視窗)"
+            description: |
+              目前 burn rate 為 {{ $value | humanize }}x，
+              遠超過 1x 正常消耗速率。
+              若持續，將在 {{ div 1 $value | humanizeDuration }} 內耗盡本月 error budget。
+            runbook_url: "https://github.com/matsurigoto/GitOps-APISIX-Canary#rollback"
+            runbook: |
+              1. 立即確認錯誤來源: kubectl logs -n app -l app=spring-boot --tail=100
+              2. 檢查 Canary 版本: ./scripts/canary-switch.sh --stable 100 --canary 0
+              3. 查看 SLO Dashboard 確認 error budget 剩餘量
+
+        # 🔴 Critical: 中速 burn rate (6 小時視窗)
+        # 條件: 6h burn rate > 6 AND 1h burn rate > 6
+        - alert: SLOErrorBudgetBurnRateFast
+          expr: |
+            slo:error_budget:burn_rate6h > 6
+            and
+            slo:error_budget:burn_rate1h > 6
+          for: 15m
+          labels:
+            severity: critical
+            team: platform
+            slo: availability
+            window: "6h"
+          annotations:
+            summary: "🔴 SLO Error Budget 消耗過快 (6 小時視窗)"
+            description: |
+              6 小時 burn rate 為 {{ $value | humanize }}x。
+              若不處理，將在數小時內消耗大量 error budget。
+            runbook: |
+              1. 查看 Grafana SLO Dashboard
+              2. 確認是否為 Canary 版本導致: 暫停流量增加
+              3. 若確認問題，執行: ./scripts/canary-switch.sh --stable 100 --canary 0
+
+        # 🟡 Warning: 慢速 burn rate (3 天視窗)
+        # 條件: 3d burn rate > 3 AND 6h burn rate > 3
+        - alert: SLOErrorBudgetBurnRateSlow
+          expr: |
+            slo:error_budget:burn_rate3d > 3
+            and
+            slo:error_budget:burn_rate6h > 3
+          for: 1h
+          labels:
+            severity: warning
+            team: platform
+            slo: availability
+            window: "3d"
+          annotations:
+            summary: "🟡 SLO Error Budget 持續消耗 (3 天視窗)"
+            description: |
+              3 天 burn rate 為 {{ $value | humanize }}x，
+              本月 error budget 可能提前耗盡，請安排調查。
+            runbook: |
+              1. 查看 Grafana SLO Dashboard 確認趨勢
+              2. 分析 Canary vs Stable 錯誤率差異
+              3. 考慮回滾或修復 Canary 版本
+
+        # 🟡 Warning: Canary SLO 違規
+        - alert: CanarySLOViolation
+          expr: |
+            slo:error_budget:canary_burn_rate1h > 10
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+            slo: canary-availability
+            component: canary
+          annotations:
+            summary: "🟡 Canary 版本 SLO 違規風險"
+            description: |
+              Canary 1 小時 burn rate 為 {{ $value | humanize }}x。
+              Canary 版本的錯誤率正在快速消耗 error budget。
+              建議暫停 Canary 流量增加，或回滾。
+            runbook: |
+              1. 暫停 Canary 流量: ./scripts/canary-switch.sh --stable 90 --canary 10
+              2. 觀察 5 分鐘後決定是否回滾
+              3. 查看 Grafana Canary Traffic Split Dashboard
+
+    # ── SLO 延遲 Burn Rate Alerts ────────────────────────────────────────
+    - name: slo.latency-burn-rate
+      rules:
+        # 延遲 SLO burn rate (P95 < 500ms, 目標 95%)
+        # error budget = 0.05 (5% 請求可超過 500ms)
+        - alert: SLOLatencyBudgetBurnRateCritical
+          expr: |
+            (1 - sum(rate(apisix_http_latency_bucket{type="request", le="500"}[1h]))
+                 / sum(rate(apisix_http_latency_count{type="request"}[1h])))
+            / 0.05 > 14.4
+          for: 2m
+          labels:
+            severity: critical
+            team: platform
+            slo: latency
+            window: "1h"
+          annotations:
+            summary: "🔴 延遲 SLO Error Budget 快速消耗"
+            description: |
+              延遲 SLO burn rate 為 {{ $value | humanize }}x。
+              超過 500ms 的請求比例過高，延遲 SLO 即將違規。
+            runbook: |
+              1. 確認慢速服務: kubectl top pods -n app
+              2. 查看 Spring Boot Metrics Dashboard
+              3. 如為 Canary 問題: ./scripts/canary-switch.sh --stable 100 --canary 0
+
+        - alert: SLOLatencyBudgetBurnRateWarning
+          expr: |
+            (1 - sum(rate(apisix_http_latency_bucket{type="request", le="500"}[6h]))
+                 / sum(rate(apisix_http_latency_count{type="request"}[6h])))
+            / 0.05 > 6
+          for: 15m
+          labels:
+            severity: warning
+            team: platform
+            slo: latency
+            window: "6h"
+          annotations:
+            summary: "🟡 延遲 SLO Error Budget 消耗偏高"
+            description: |
+              延遲 SLO 6 小時 burn rate 為 {{ $value | humanize }}x。
+              請查看延遲趨勢，考慮是否調整 Canary 比例。

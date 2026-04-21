@@ -1,0 +1,383 @@
+{
+  "title": "SLO Dashboard",
+  "uid": "slo-dashboard",
+  "tags": ["slo", "canary", "gitops"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "version",
+        "type": "custom",
+        "label": "Version",
+        "current": { "value": "overall", "text": "overall" },
+        "options": [
+          { "value": "overall", "text": "overall", "selected": true },
+          { "value": "stable", "text": "stable" },
+          { "value": "canary", "text": "canary" }
+        ],
+        "query": "overall,stable,canary"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "可用性 SLO 達成率 (目標: 99.5%)",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.98,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0.99 },
+              { "color": "green", "value": 0.995 }
+            ]
+          },
+          "mappings": []
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "expr": "sli:availability:ratio_rate5m{version=\"overall\"}",
+          "legendFormat": "可用性 SLI"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "延遲 SLO 達成率 (P95 < 500ms, 目標: 95%)",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.9,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0.93 },
+              { "color": "green", "value": 0.95 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "expr": "sli:latency_p95_500ms:ratio_rate5m{version=\"overall\"}",
+          "legendFormat": "延遲 SLI"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Error Budget 剩餘量 (30 天滾動視窗)",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0.25 },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "green", "value": 0.75 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "expr": "clamp_min(slo:error_budget:remaining_30d, 0)",
+          "legendFormat": "Error Budget 剩餘"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Error Budget Burn Rate (多視窗)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 3 },
+              { "color": "orange", "value": 6 },
+              { "color": "red", "value": 14.4 }
+            ]
+          },
+          "displayName": "${__field.labels.window}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "vertical",
+        "textMode": "auto",
+        "colorMode": "background"
+      },
+      "targets": [
+        {
+          "expr": "slo:error_budget:burn_rate1h",
+          "legendFormat": "1h burn rate"
+        },
+        {
+          "expr": "slo:error_budget:burn_rate6h",
+          "legendFormat": "6h burn rate"
+        },
+        {
+          "expr": "slo:error_budget:burn_rate3d",
+          "legendFormat": "3d burn rate"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "可用性 SLI 趨勢 — Stable vs Canary",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.95,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "SLO 目標 (99.5%)" },
+            "properties": [
+              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [8, 4] } },
+              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "min"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "expr": "sli:availability:ratio_rate5m{version=\"stable\"}",
+          "legendFormat": "Stable 可用性"
+        },
+        {
+          "expr": "sli:availability:ratio_rate5m{version=\"canary\"}",
+          "legendFormat": "Canary 可用性"
+        },
+        {
+          "expr": "vector(0.995)",
+          "legendFormat": "SLO 目標 (99.5%)"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "延遲 SLI 趨勢 — Stable vs Canary (P95 < 500ms 達標率)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.8,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "SLO 目標 (95%)" },
+            "properties": [
+              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [8, 4] } },
+              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "min"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "expr": "sli:latency_p95_500ms:ratio_rate5m{version=\"stable\"}",
+          "legendFormat": "Stable 延遲達標率"
+        },
+        {
+          "expr": "sli:latency_p95_500ms:ratio_rate5m{version=\"canary\"}",
+          "legendFormat": "Canary 延遲達標率"
+        },
+        {
+          "expr": "vector(0.95)",
+          "legendFormat": "SLO 目標 (95%)"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Error Budget Burn Rate 趨勢 (多視窗)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "lineWidth": 2 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Critical 閾值 (14.4x)" },
+            "properties": [
+              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [8, 4] } },
+              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Warning 閾值 (6x)" },
+            "properties": [
+              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [4, 4] } },
+              { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "expr": "slo:error_budget:burn_rate1h",
+          "legendFormat": "1h Burn Rate"
+        },
+        {
+          "expr": "slo:error_budget:burn_rate6h",
+          "legendFormat": "6h Burn Rate"
+        },
+        {
+          "expr": "slo:error_budget:burn_rate3d",
+          "legendFormat": "3d Burn Rate"
+        },
+        {
+          "expr": "slo:error_budget:canary_burn_rate1h",
+          "legendFormat": "Canary 1h Burn Rate"
+        },
+        {
+          "expr": "vector(14.4)",
+          "legendFormat": "Critical 閾值 (14.4x)"
+        },
+        {
+          "expr": "vector(6)",
+          "legendFormat": "Warning 閾值 (6x)"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "SLO 狀態摘要",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Value #A" },
+            "properties": [
+              { "id": "displayName", "value": "可用性 SLI" },
+              { "id": "unit", "value": "percentunit" },
+              { "id": "thresholds", "value": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 0.995 }
+                ]
+              }},
+              { "id": "custom.displayMode", "value": "color-background" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Value #B" },
+            "properties": [
+              { "id": "displayName", "value": "延遲 SLI" },
+              { "id": "unit", "value": "percentunit" },
+              { "id": "thresholds", "value": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 0.95 }
+                ]
+              }},
+              { "id": "custom.displayMode", "value": "color-background" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "sortBy": [{ "displayName": "version", "desc": false }]
+      },
+      "targets": [
+        {
+          "expr": "sli:availability:ratio_rate5m",
+          "legendFormat": "{{version}}",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "expr": "sli:latency_p95_500ms:ratio_rate5m",
+          "legendFormat": "{{version}}",
+          "instant": true,
+          "refId": "B"
+        }
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        { "id": "organize", "options": {
+          "renameByName": { "version": "版本" }
+        }}
+      ]
+    }
+  ]
+}

@@ -8,7 +8,7 @@ set -euo pipefail
 # =============================================================================
 
 APISIX_ADMIN="${APISIX_ADMIN_URL:-http://127.0.0.1:9180}"
-ADMIN_KEY="${APISIX_ADMIN_KEY:-edd1c9f034335f136f87ad84b625c8f1}"
+ADMIN_KEY="${APISIX_ADMIN_KEY:-gitops-canary-admin-key-2026}"
 UPSTREAM_ID="canary-upstream"
 
 echo "Initializing canary upstream via Admin API..."
@@ -54,6 +54,63 @@ echo ""
 echo "Upstream '${UPSTREAM_ID}' initialized."
 echo "  stable  → spring-boot-stable.app:8080  (weight: 100)"
 echo "  canary  → spring-boot-canary.app:8080  (weight: 0)"
+
+# =============================================================================
+# Create Admin API route for /api/* pointing to canary-upstream
+# Priority 100 ensures this route wins over CRD-managed route (default: 0).
+# This is required so that APISIX uses DNS-based node labels
+# (spring-boot-stable.app:8080 / spring-boot-canary.app:8080) in metrics,
+# which allows the Grafana "Canary Traffic Split" dashboard to work correctly.
+# =============================================================================
+ROUTE_ID="canary-api-route"
+OPA_HOST="${OPA_HOST:-http://opa.opa-system:8181}"
+
+echo ""
+echo "Creating Admin API route '${ROUTE_ID}' for /api/* → ${UPSTREAM_ID} ..."
+
+ROUTE_PAYLOAD=$(cat <<EOF
+{
+  "name": "canary-api-route",
+  "desc": "Admin API managed route — uses canary-upstream with DNS node names for Grafana metrics",
+  "uri": "/api/*",
+  "methods": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  "upstream_id": "${UPSTREAM_ID}",
+  "priority": 100,
+  "plugins": {
+    "prometheus": {
+      "prefer_name": true
+    },
+    "opentelemetry": {
+      "sampler": {
+        "name": "always_on"
+      }
+    },
+    "opa": {
+      "host": "${OPA_HOST}",
+      "policy": "apisix/canary",
+      "with_route": true,
+      "with_service": false,
+      "with_consumer": false
+    }
+  }
+}
+EOF
+)
+
+curl -s -o /dev/null -w "HTTP %{http_code}\n" \
+  "${APISIX_ADMIN}/apisix/admin/routes/${ROUTE_ID}" \
+  -H "X-API-KEY: ${ADMIN_KEY}" \
+  -H "Content-Type: application/json" \
+  -X PUT \
+  -d "${ROUTE_PAYLOAD}"
+
+echo ""
+echo "Route '${ROUTE_ID}' created (priority=100 → overrides CRD route priority=0)."
 echo ""
 echo "Verify:"
 echo "  curl ${APISIX_ADMIN}/apisix/admin/upstreams/${UPSTREAM_ID} -H 'X-API-KEY: ${ADMIN_KEY}'"
+echo "  curl ${APISIX_ADMIN}/apisix/admin/routes/${ROUTE_ID}       -H 'X-API-KEY: ${ADMIN_KEY}'"
+echo ""
+echo "Grafana 'Canary Traffic Split' dashboard queries:"
+echo "  node=~\".*stable.*\"  →  spring-boot-stable.app:8080"
+echo "  node=~\".*canary.*\"  →  spring-boot-canary.app:8080"
