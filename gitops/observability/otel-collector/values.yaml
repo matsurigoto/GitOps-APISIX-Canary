@@ -3,6 +3,9 @@
 # Receives OTLP traces/metrics → Exports to Tempo (traces) + Prometheus (metrics)
 # =============================================================================
 
+# Override the full resource name to match the service name expected by Spring Boot apps
+fullnameOverride: otel-collector
+
 image:
   repository: "otel/opentelemetry-collector-contrib"
 
