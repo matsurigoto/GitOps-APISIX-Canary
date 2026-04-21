@@ -163,4 +163,18 @@ etcd:
 
 # ── Dashboard (optional, disable for production) ─────────────────────────
 dashboard:
-  enabled: false
+  enabled: true
+  type: LoadBalancer
+  service:
+    annotations: {}
+  config:
+    conf:
+      etcd:
+        endpoints:
+          - apisix-etcd:2379
+      authentication:
+        secret: "gitops-canary-dashboard-secret-2026"
+        expire_time: 3600
+        users:
+          - username: admin
+            password: "gitops-canary-admin-pwd-2026"

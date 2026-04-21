@@ -191,6 +191,7 @@ kubectl get svc -A | grep LoadBalancer
 | 服務 | Namespace | Port | 說明 |
 |------|-----------|------|------|
 | APISIX Gateway | ingress-apisix | 80 | API 入口 |
+| APISIX Dashboard | ingress-apisix | 80 | APISIX 管理介面 (admin/gitops-canary-admin-pwd-2026) |
 | Grafana | observability | 3000 | 儀表板 (admin/admin) |
 | Prometheus | observability | 9090 | 指標查詢 |
 | ArgoCD | argocd | 443 | GitOps 管理 |
