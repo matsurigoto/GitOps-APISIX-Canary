@@ -81,6 +81,12 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    ignoreDifferences:
+      - group: networking.k8s.io
+        kind: IngressClass
+        jqPathExpressions:
+          - .spec.controller
 ---
 # =============================================================================
 # ArgoCD Application — APISIX CRDs (Route, PluginConfig)
