@@ -1,9 +1,5 @@
 # =============================================================================
-# OPA Configuration — Bundle from Azure Blob Storage (Workload Identity)
-# =============================================================================
-# Environment variables AZURE_CLIENT_ID, AZURE_FEDERATED_TOKEN_FILE,
-# AZURE_AUTHORITY_HOST, AZURE_TENANT_ID are automatically injected by
-# Azure Workload Identity webhook.
+# OPA Configuration — Bundle from Azure Blob Storage (SAS Token)
 # =============================================================================
 apiVersion: v1
 kind: ConfigMap
@@ -18,19 +14,11 @@ data:
         headers:
           x-ms-version: "2020-04-08"
         response_header_timeout_seconds: 10
-        credentials:
-          oauth2:
-            grant_type: client_credentials
-            client_id: "${AZURE_CLIENT_ID}"
-            client_assertion_path: "${AZURE_FEDERATED_TOKEN_FILE}"
-            token_url: "${AZURE_AUTHORITY_HOST}/${AZURE_TENANT_ID}/oauth2/v2.0/token"
-            scopes:
-              - https://storage.azure.com/.default
 
     bundles:
       authz:
         service: azure_blob
-        resource: opa-bundles/bundle.tar.gz
+        resource: "opa-bundles/bundle.tar.gz?se=2027-12-31&sp=r&sv=2026-02-06&sr=c&sig=QE43o7yTCkOh1xBxGzD5oSldfsmXZthntE1myR1rD6c%3D"
         persist: true
         polling:
           min_delay_seconds: 30
