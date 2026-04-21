@@ -93,6 +93,15 @@ apisix:
         inactive_timeout: 1
         max_export_batch_size: 16
 
+# ── Extra Container Ports ────────────────────────────────────────────────
+# Expose 9091 in the pod spec so Prometheus relabeling keeps the target.
+# Without this, the ServiceMonitor relabel rule
+# (__meta_kubernetes_pod_container_port_number == 9091) drops the target.
+extraContainerPorts:
+  - name: prometheus
+    containerPort: 9091
+    protocol: TCP
+
 # ── Prometheus Metrics Port ──────────────────────────────────────────────
 metrics:
   serviceMonitor:
