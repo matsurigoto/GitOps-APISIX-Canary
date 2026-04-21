@@ -29,10 +29,10 @@ spec:
       backends:
         - serviceName: spring-boot-stable
           servicePort: 8080
-          weight: 100
+          weight: 50
         - serviceName: spring-boot-canary
           servicePort: 8080
-          weight: 0
+          weight: 50
       plugins:
         # Prometheus metrics for this route
         - name: prometheus
