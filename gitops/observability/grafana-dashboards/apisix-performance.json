@@ -158,14 +158,14 @@
       "fieldConfig": { "defaults": { "unit": "reqps" } }
     },
     {
-      "title": "Cache Hit Rate",
+      "title": "2xx Success Rate",
       "type": "gauge",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 13 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{cache_status=\"HIT\"}[5m])) / sum(rate(apisix_http_status{cache_status!=\"\"}[5m])) * 100",
-          "legendFormat": "Hit Rate %"
+          "expr": "sum(rate(apisix_http_status{code=~\"2..\"}[5m])) / sum(rate(apisix_http_status[5m])) * 100",
+          "legendFormat": "Success Rate %"
         }
       ],
       "fieldConfig": {
@@ -177,46 +177,42 @@
             "mode": "absolute",
             "steps": [
               { "color": "red", "value": null },
-              { "color": "yellow", "value": 50 },
-              { "color": "green", "value": 80 }
+              { "color": "yellow", "value": 95 },
+              { "color": "green", "value": 99 }
             ]
           }
         }
       }
     },
     {
-      "title": "Cache Status Distribution",
+      "title": "HTTP Status Code Distribution",
       "type": "piechart",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 13 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status[5m])) by (cache_status)",
-          "legendFormat": "{{cache_status}}"
+          "expr": "sum(rate(apisix_http_status[5m])) by (code)",
+          "legendFormat": "{{code}}"
         }
       ],
       "fieldConfig": { "defaults": { "unit": "reqps" } }
     },
     {
-      "title": "Response Size Distribution",
+      "title": "Bandwidth Rate (Egress)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 13 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum(rate(apisix_bandwidth_bucket{type=\"egress\"}[5m])) by (le))",
-          "legendFormat": "P50"
+          "expr": "sum(rate(apisix_bandwidth{type=\"egress\"}[5m]))",
+          "legendFormat": "Egress"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(apisix_bandwidth_bucket{type=\"egress\"}[5m])) by (le))",
-          "legendFormat": "P95"
-        },
-        {
-          "expr": "histogram_quantile(0.99, sum(rate(apisix_bandwidth_bucket{type=\"egress\"}[5m])) by (le))",
-          "legendFormat": "P99"
+          "expr": "sum(rate(apisix_bandwidth{type=\"ingress\"}[5m]))",
+          "legendFormat": "Ingress"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "bytes" } }
+      "fieldConfig": { "defaults": { "unit": "Bps" } }
     },
     {
       "title": "Request Body Size",
