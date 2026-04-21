@@ -46,14 +46,15 @@ spec:
             sampler:
               name: always_on
         # OPA policy check (canary decision)
-        - name: opa
-          enable: true
-          config:
-            host: "http://opa.opa-system:8181"
-            policy: "apisix/canary"
-            with_route: true
-            with_service: false
-            with_consumer: false
+        # DISABLED: Enable after OPA is deployed and configured
+        # - name: opa
+        #   enable: true
+        #   config:
+        #     host: "http://opa.opa-system:8181"
+        #     policy: "apisix/canary"
+        #     with_route: true
+        #     with_service: false
+        #     with_consumer: false
 
     # ── Actuator route (direct to stable, no canary split) ───────────────
     - name: actuator-route
