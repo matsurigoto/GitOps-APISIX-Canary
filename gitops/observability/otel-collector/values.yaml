@@ -3,6 +3,9 @@
 # Receives OTLP traces/metrics → Exports to Tempo (traces) + Prometheus (metrics)
 # =============================================================================
 
+# Override the service name to match the expected DNS name
+fullnameOverride: otel-collector
+
 image:
   repository: "otel/opentelemetry-collector-contrib"
 
