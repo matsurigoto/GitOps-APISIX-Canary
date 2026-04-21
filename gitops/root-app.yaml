@@ -82,6 +82,7 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - RespectIgnoreDifferences=true
+      - Replace=true
     ignoreDifferences:
       - group: networking.k8s.io
         kind: IngressClass
