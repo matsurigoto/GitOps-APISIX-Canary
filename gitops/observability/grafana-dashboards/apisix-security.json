@@ -165,15 +165,16 @@
       }
     },
     {
-      "title": "Top Blocked IPs",
+      "title": "Top Blocked Routes (403/429)",
       "type": "table",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 13 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "topk(10, sum(rate(apisix_http_status{code=\"403\"}[5m])) by (remote_addr))",
-          "legendFormat": "{{remote_addr}}",
-          "format": "table"
+          "expr": "topk(10, sum(rate(apisix_http_status{code=~\"403|429\"}[5m])) by (route, code))",
+          "legendFormat": "{{route}} - {{code}}",
+          "format": "table",
+          "instant": true
         }
       ],
       "fieldConfig": { "defaults": { "unit": "reqps" } }

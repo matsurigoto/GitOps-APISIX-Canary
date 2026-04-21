@@ -15,6 +15,38 @@ metadata:
   namespace: app
 spec:
   http:
+    # ── Canary header explicit route ─────────────────────────────────────
+    - name: api-route-canary
+      match:
+        paths:
+          - /api/*
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+        exprs:
+          - subject:
+              scope: Header
+              name: x-canary
+            op: Equal
+            value: "true"
+      backends:
+        - serviceName: spring-boot-canary
+          servicePort: 8080
+          weight: 100
+      plugins:
+        - name: prometheus
+          enable: true
+          config:
+            prefer_name: true
+        - name: opentelemetry
+          enable: true
+          config:
+            sampler:
+              name: always_on
+
     # ── Primary API route ────────────────────────────────────────────────
     - name: api-route
       match:
@@ -29,10 +61,10 @@ spec:
       backends:
         - serviceName: spring-boot-stable
           servicePort: 8080
-          weight: 50
+          weight: 90
         - serviceName: spring-boot-canary
           servicePort: 8080
-          weight: 50
+          weight: 10
       plugins:
         # Prometheus metrics for this route
         - name: prometheus
@@ -54,6 +86,18 @@ spec:
             with_route: true
             with_service: false
             with_consumer: false
+        # Rate limiting — 60 requests per minute per client IP
+        - name: limit-count
+          enable: true
+          config:
+            count: 60
+            time_window: 60
+            key: "remote_addr"
+            key_type: var
+            rejected_code: 429
+            rejected_msg: '{"error":"rate limit exceeded","code":429}'
+            policy: local
+            show_limit_quota_header: true
 
     # ── Actuator route (direct to stable, no canary split) ───────────────
     - name: actuator-route
