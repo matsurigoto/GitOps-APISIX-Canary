@@ -101,6 +101,16 @@ helm install apisix apisix/apisix \
   -f gitops/apisix/values.yaml
 ```
 
+取得 APISIX Dashboard 外部 IP：
+```bash
+kubectl get svc -n ingress-apisix | grep dashboard
+```
+
+存取 APISIX Dashboard：
+- URL: `http://<DASHBOARD_EXTERNAL_IP>`
+- 帳號: `admin`
+- 密碼: `gitops-canary-admin-pwd-2026`
+
 ### 5. 部署 ArgoCD Root App
 
 ```bash
