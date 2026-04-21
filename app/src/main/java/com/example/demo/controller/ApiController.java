@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.net.InetAddress;
 import java.time.Instant;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api")
@@ -46,6 +47,26 @@ public class ApiController {
             "app", "demo-api",
             "version", appVersion,
             "description", "Spring Boot Demo API for GitOps APISIX Canary"
+        );
+    }
+
+    @GetMapping("/slow")
+    public Map<String, Object> slow() throws InterruptedException {
+        long start = System.currentTimeMillis();
+        TimeUnit.SECONDS.sleep(8);
+        long elapsed = System.currentTimeMillis() - start;
+        String hostname;
+        try {
+            hostname = InetAddress.getLocalHost().getHostName();
+        } catch (Exception e) {
+            hostname = "unknown";
+        }
+        return Map.of(
+            "message", "Slow response from " + appVersion,
+            "version", appVersion,
+            "hostname", hostname,
+            "elapsed_ms", elapsed,
+            "timestamp", Instant.now().toString()
         );
     }
 }
