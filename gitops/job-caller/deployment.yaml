@@ -25,26 +25,33 @@ spec:
           args:
             - |
               echo "Starting API caller - hitting APISIX every 5 seconds"
-              while true; do
+              APISIX="http://apisix-gateway.ingress-apisix:80"
+              call() {
+                LABEL=$1; ENDPOINT=$2; shift 2
                 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-                # Call without canary header (goes to stable)
-                RESP=$(curl -s -w "\n%{http_code}" \
-                  http://apisix-gateway.ingress-apisix:80/api/hello 2>/dev/null)
+                RESP=$(curl -s -w "\n%{http_code}" "$@" "${APISIX}${ENDPOINT}" 2>/dev/null)
                 HTTP_CODE=$(echo "$RESP" | tail -1)
                 BODY=$(echo "$RESP" | head -1)
-                echo "${TIMESTAMP} | stable | HTTP ${HTTP_CODE} | ${BODY}"
+                echo "${TIMESTAMP} | ${LABEL} | ${ENDPOINT} | HTTP ${HTTP_CODE} | ${BODY}"
+              }
+              while true; do
+                # /api/hello — stable & canary
+                call stable  /api/hello
+                sleep 1
+                call canary  /api/hello -H "x-canary: true"
+                sleep 1
 
-                sleep 2
+                # /api/health — stable & canary
+                call stable  /api/health
+                sleep 1
+                call canary  /api/health -H "x-canary: true"
+                sleep 1
 
-                # Call with canary header (goes to canary if available)
-                RESP=$(curl -s -w "\n%{http_code}" \
-                  -H "x-canary: true" \
-                  http://apisix-gateway.ingress-apisix:80/api/hello 2>/dev/null)
-                HTTP_CODE=$(echo "$RESP" | tail -1)
-                BODY=$(echo "$RESP" | head -1)
-                echo "${TIMESTAMP} | canary | HTTP ${HTTP_CODE} | ${BODY}"
-
-                sleep 3
+                # /api/info — stable & canary
+                call stable  /api/info
+                sleep 1
+                call canary  /api/info -H "x-canary: true"
+                sleep 1
               done
           resources:
             requests:
