@@ -97,7 +97,8 @@ apisix:
 metrics:
   serviceMonitor:
     enabled: true
-    namespace: observability
+    # ServiceMonitor deployed in ingress-apisix (same as the metrics service)
+    # so namespaceSelector correctly targets ingress-apisix namespace
 
 # ── Ingress Controller ───────────────────────────────────────────────────
 ingress-controller:

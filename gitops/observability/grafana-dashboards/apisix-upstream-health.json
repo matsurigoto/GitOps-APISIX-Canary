@@ -8,14 +8,14 @@
   "links": [],
   "panels": [
     {
-      "title": "Upstream Health Status",
+      "title": "etcd Reachable",
       "type": "stat",
       "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "apisix_upstream_status{state=\"healthy\"}",
-          "legendFormat": "Healthy: {{upstream}}"
+          "expr": "apisix_etcd_reachable",
+          "legendFormat": "etcd"
         }
       ],
       "fieldConfig": {
@@ -29,96 +29,96 @@
             ]
           },
           "mappings": [
-            { "options": { "0": { "text": "UNHEALTHY", "color": "red" }, "1": { "text": "HEALTHY", "color": "green" } }, "type": "value" }
+            { "options": { "0": { "text": "UNREACHABLE", "color": "red" }, "1": { "text": "REACHABLE", "color": "green" } }, "type": "value" }
           ]
         }
       }
     },
     {
-      "title": "Total Active Upstreams",
+      "title": "Active Routes (last 5m)",
       "type": "stat",
       "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "count(apisix_upstream_status)",
-          "legendFormat": "Upstreams"
+          "expr": "count(sum(rate(apisix_http_requests_total[5m])) by (route) > 0) or vector(0)",
+          "legendFormat": "Routes"
         }
       ],
       "fieldConfig": { "defaults": { "unit": "short" } }
     },
     {
-      "title": "Unhealthy Upstreams",
+      "title": "5xx Error Rate (last 5m)",
       "type": "stat",
       "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "count(apisix_upstream_status{state=\"unhealthy\"})",
-          "legendFormat": "Unhealthy"
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\"}[5m])) or vector(0)",
+          "legendFormat": "5xx/s"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "unit": "reqps",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
+              { "color": "red", "value": 0.01 }
             ]
           }
         }
       }
     },
     {
-      "title": "Upstream Request Distribution",
+      "title": "Request Rate by Route",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status[5m])) by (upstream)",
-          "legendFormat": "{{upstream}}"
+          "expr": "sum(rate(apisix_http_status[5m])) by (route)",
+          "legendFormat": "{{route}}"
         }
       ],
       "fieldConfig": { "defaults": { "unit": "reqps" } }
     },
     {
-      "title": "Upstream Response Times (P95)",
+      "title": "Upstream Response Times P95 by Route",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"upstream\"}[5m])) by (le, upstream))",
-          "legendFormat": "{{upstream}} P95"
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"upstream\"}[5m])) by (le, route))",
+          "legendFormat": "{{route}} P95"
         }
       ],
       "fieldConfig": { "defaults": { "unit": "ms" } }
     },
     {
-      "title": "Upstream Connection Pool",
+      "title": "NGINX Active Connections",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "apisix_node_info",
-          "legendFormat": "Node: {{hostname}}"
+          "expr": "apisix_nginx_http_current_connections",
+          "legendFormat": "{{state}}"
         }
       ],
       "fieldConfig": { "defaults": { "unit": "short" } }
     },
     {
-      "title": "Upstream Error Rate by Service",
+      "title": "5xx Error Rate by Route",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"5..\"}[5m])) by (upstream) / sum(rate(apisix_http_status[5m])) by (upstream) * 100",
-          "legendFormat": "{{upstream}} errors"
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\"}[5m])) by (route) / sum(rate(apisix_http_status[5m])) by (route) * 100",
+          "legendFormat": "{{route}} errors"
         }
       ],
       "fieldConfig": {
@@ -136,14 +136,14 @@
       }
     },
     {
-      "title": "Health Check Success Rate",
+      "title": "HTTP Success Rate",
       "type": "gauge",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(apisix_upstream_status{state=\"healthy\"}) / count(apisix_upstream_status) * 100",
-          "legendFormat": "Health %"
+          "expr": "sum(rate(apisix_http_status{code=~\"2..\"}[5m])) / sum(rate(apisix_http_status[5m])) * 100",
+          "legendFormat": "Success %"
         }
       ],
       "fieldConfig": {
