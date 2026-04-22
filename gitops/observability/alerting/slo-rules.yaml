@@ -30,8 +30,8 @@ spec:
         - record: sli:availability:ratio_rate5m
           expr: |
             label_replace(
-              sum(rate(apisix_http_status{route="canary-api-route", code!~"5.."}[5m]))
-              / sum(rate(apisix_http_status{route="canary-api-route"}[5m])),
+              sum(rate(apisix_http_status{route="api-route", code!~"5.."}[5m]))
+              / sum(rate(apisix_http_status{route="api-route"}[5m])),
               "version", "stable", "", ""
             )
 
@@ -39,8 +39,8 @@ spec:
         - record: sli:availability:ratio_rate5m
           expr: |
             label_replace(
-              sum(rate(apisix_http_status{route="canary-header-route", code!~"5.."}[5m]))
-              / sum(rate(apisix_http_status{route="canary-header-route"}[5m])),
+              sum(rate(apisix_http_status{route="api-route-canary", code!~"5.."}[5m]))
+              / sum(rate(apisix_http_status{route="api-route-canary"}[5m])),
               "version", "canary", "", ""
             )
 
@@ -59,7 +59,7 @@ spec:
         - record: sli:latency_p95_500ms:ratio_rate5m
           expr: |
             label_replace(
-              sum(rate(apisix_http_latency_bucket{type="request", route="canary-api-route", le="500"}[5m]))
+              sum(rate(apisix_http_latency_bucket{type="request", route="canary-api-route", le="500.0"}[5m]))
               / sum(rate(apisix_http_latency_count{type="request", route="canary-api-route"}[5m])),
               "version", "stable", "", ""
             )
@@ -68,7 +68,7 @@ spec:
         - record: sli:latency_p95_500ms:ratio_rate5m
           expr: |
             label_replace(
-              sum(rate(apisix_http_latency_bucket{type="request", route="canary-header-route", le="500"}[5m]))
+              sum(rate(apisix_http_latency_bucket{type="request", route="canary-header-route", le="500.0"}[5m]))
               / sum(rate(apisix_http_latency_count{type="request", route="canary-header-route"}[5m])),
               "version", "canary", "", ""
             )
@@ -77,7 +77,7 @@ spec:
         - record: sli:latency_p95_500ms:ratio_rate5m
           expr: |
             label_replace(
-              sum(rate(apisix_http_latency_bucket{type="request", le="500"}[5m]))
+              sum(rate(apisix_http_latency_bucket{type="request", le="500.0"}[5m]))
               / sum(rate(apisix_http_latency_count{type="request"}[5m])),
               "version", "overall", "", ""
             )
@@ -109,8 +109,8 @@ spec:
         # Canary 可用性 1 小時 burn rate
         - record: slo:error_budget:canary_burn_rate1h
           expr: |
-            (1 - sum(rate(apisix_http_status{route="canary-header-route", code!~"5.."}[1h]))
-                 / sum(rate(apisix_http_status{route="canary-header-route"}[1h])))
+            (1 - sum(rate(apisix_http_status{route="api-route-canary", code!~"5.."}[1h]))
+                 / sum(rate(apisix_http_status{route="api-route-canary"}[1h])))
             / 0.005
 
         # ── Error Budget 剩餘量 (月度) ────────────────────────────────────
