@@ -16,6 +16,13 @@ tempo:
   metricsGenerator:
     enabled: true
     remoteWriteUrl: "http://monitoring-kube-prometheus-prometheus.observability:9090/api/v1/write"
+    processors:
+      - service-graphs
+      - span-metrics
+    serviceGraphs:
+      maxItems: 10000
+      wait: 10s
+      workers: 10
 
   # Storage: local filesystem (for dev/POC)
   storage:
@@ -33,6 +40,9 @@ tempo:
   global_overrides:
     per_tenant_override_config: ""
     max_traces_per_user: 0
+    metrics_generator_processors:
+      - service-graphs
+      - span-metrics
 
 persistence:
   enabled: true

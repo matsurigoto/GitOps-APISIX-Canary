@@ -19,6 +19,9 @@ prometheus:
     podMonitorNamespaceSelector: {}
     podMonitorSelector: {}
 
+    # Enable remote write receiver (required for Tempo metrics generator)
+    enableRemoteWriteReceiver: true
+
     # Retention
     retention: 7d
 
@@ -71,6 +74,10 @@ grafana:
       isDefault: false
       jsonData:
         httpMethod: GET
+        serviceMap:
+          datasourceUid: prometheus
+        nodeGraph:
+          enabled: true
         tracesToMetrics:
           datasourceUid: prometheus
           tags:
