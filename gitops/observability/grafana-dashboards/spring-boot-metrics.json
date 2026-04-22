@@ -23,7 +23,11 @@
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application=\"demo-api\"}[5m])) by (le, uri))",
-          "legendFormat": "{{uri}} P95"
+          "legendFormat": "{{uri}} P95 (histogram)"
+        },
+        {
+          "expr": "http_server_requests_seconds{application=\"demo-api\",quantile=\"0.95\"}",
+          "legendFormat": "{{uri}} P95 (quantile)"
         }
       ],
       "fieldConfig": { "defaults": { "unit": "s" } }

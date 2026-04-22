@@ -43,6 +43,10 @@ spec:
               value: "http/protobuf"
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "service.version=v1,deployment.environment=production"
+            - name: MANAGEMENT_METRICS_DISTRIBUTION_PERCENTILES_HISTOGRAM_HTTP_SERVER_REQUESTS
+              value: "true"
+            - name: MANAGEMENT_METRICS_DISTRIBUTION_PERCENTILES_HTTP_SERVER_REQUESTS
+              value: "0.5,0.95,0.99"
           resources:
             requests:
               cpu: 250m
