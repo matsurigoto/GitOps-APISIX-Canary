@@ -15,7 +15,7 @@ tempo:
   # Metrics generator (for service graph & span metrics)
   metricsGenerator:
     enabled: true
-    remoteWriteUrl: "http://monitoring-prometheus.observability:9090/api/v1/write"
+    remoteWriteUrl: "http://monitoring-kube-prometheus-prometheus.observability:9090/api/v1/write"
 
   # Storage: local filesystem (for dev/POC)
   storage:

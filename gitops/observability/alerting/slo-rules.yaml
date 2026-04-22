@@ -16,7 +16,7 @@ metadata:
   name: slo-rules
   namespace: observability
   labels:
-    release: kube-prometheus-stack
+    release: monitoring
     app: kube-prometheus-stack
 spec:
   groups:
