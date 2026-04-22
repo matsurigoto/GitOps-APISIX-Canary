@@ -9,12 +9,12 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{node=\\"10.0.102.231\\"}[5m]))",
-          "legendFormat": "Stable"
+          "expr": "sum(rate(apisix_http_status{route=\"api-route\"}[5m]))",
+          "legendFormat": "Stable (Weighted)"
         },
         {
-          "expr": "sum(rate(apisix_http_status{node=\\"10.0.120.153\\"}[5m]))",
-          "legendFormat": "Canary"
+          "expr": "sum(rate(apisix_http_status{route=\"api-route-canary\"}[5m]))",
+          "legendFormat": "Canary (Header)"
         }
       ],
       "options": {
@@ -24,17 +24,17 @@
       }
     },
     {
-      "title": "QPS ??Stable vs Canary",
+      "title": "QPS - Stable vs Canary",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 16, "x": 8, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{node=\\"10.0.102.231\\"}[1m]))",
+          "expr": "sum(rate(apisix_http_status{route=\"api-route\"}[1m]))",
           "legendFormat": "Stable QPS"
         },
         {
-          "expr": "sum(rate(apisix_http_status{node=\\"10.0.120.153\\"}[1m]))",
+          "expr": "sum(rate(apisix_http_status{route=\"api-route-canary\"}[1m]))",
           "legendFormat": "Canary QPS"
         }
       ],
@@ -47,17 +47,17 @@
       }
     },
     {
-      "title": "Latency ??Stable vs Canary (P95)",
+      "title": "Latency - Stable vs Canary (P95)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", node=\\"10.0.102.231\\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"api-route\"}[5m])) by (le))",
           "legendFormat": "Stable P95"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", node=\\"10.0.120.153\\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"api-route-canary\"}[5m])) by (le))",
           "legendFormat": "Canary P95"
         }
       ],
@@ -70,17 +70,17 @@
       }
     },
     {
-      "title": "Error Rate ??Stable vs Canary (5xx)",
+      "title": "Error Rate - Stable vs Canary (5xx)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"5..\", node=\\"10.0.102.231\\"}[5m])) / sum(rate(apisix_http_status{node=\\"10.0.102.231\\"}[5m])) * 100",
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=\"api-route\"}[5m])) / sum(rate(apisix_http_status{route=\"api-route\"}[5m])) * 100",
           "legendFormat": "Stable 5xx %"
         },
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"5..\", node=\\"10.0.120.153\\"}[5m])) / sum(rate(apisix_http_status{node=\\"10.0.120.153\\"}[5m])) * 100",
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=\"api-route-canary\"}[5m])) / sum(rate(apisix_http_status{route=\"api-route-canary\"}[5m])) * 100",
           "legendFormat": "Canary 5xx %"
         }
       ],
@@ -99,18 +99,18 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"2..\", node=\\"10.0.102.231\\"}[5m])) / sum(rate(apisix_http_status{node=\\"10.0.102.231\\"}[5m])) * 100",
+          "expr": "sum(rate(apisix_http_status{code=~\"2..\", route=\"api-route\"}[5m])) / sum(rate(apisix_http_status{route=\"api-route\"}[5m])) * 100",
           "legendFormat": "Stable Success %"
         },
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"2..\", node=\\"10.0.120.153\\"}[5m])) / sum(rate(apisix_http_status{node=\\"10.0.120.153\\"}[5m])) * 100",
+          "expr": "sum(rate(apisix_http_status{code=~\"2..\", route=\"api-route-canary\"}[5m])) / sum(rate(apisix_http_status{route=\"api-route-canary\"}[5m])) * 100",
           "legendFormat": "Canary Success %"
         }
       ],
       "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } }
     },
     {
-      "title": "Traces ??Recent Requests (Tempo)",
+      "title": "Traces - Recent Requests (Tempo)",
       "type": "traces",
       "gridPos": { "h": 10, "w": 12, "x": 12, "y": 16 },
       "datasource": { "type": "tempo", "uid": "tempo" },
@@ -122,17 +122,17 @@
       ]
     },
     {
-      "title": "Bandwidth ??Stable vs Canary",
+      "title": "Bandwidth - Stable vs Canary",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 26 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", node=\\"10.0.102.231\\"}[5m]))",
+          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", route=\"api-route\"}[5m]))",
           "legendFormat": "Stable Egress"
         },
         {
-          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", node=\\"10.0.120.153\\"}[5m]))",
+          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", route=\"api-route-canary\"}[5m]))",
           "legendFormat": "Canary Egress"
         }
       ],

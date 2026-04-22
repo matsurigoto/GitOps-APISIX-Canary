@@ -30,8 +30,8 @@ spec:
         - record: sli:availability:ratio_rate5m
           expr: |
             label_replace(
-              sum(rate(apisix_http_status{node=~".*stable.*", code!~"5.."}[5m]))
-              / sum(rate(apisix_http_status{node=~".*stable.*"}[5m])),
+              sum(rate(apisix_http_status{route="api-route", code!~"5.."}[5m]))
+              / sum(rate(apisix_http_status{route="api-route"}[5m])),
               "version", "stable", "", ""
             )
 
@@ -39,8 +39,8 @@ spec:
         - record: sli:availability:ratio_rate5m
           expr: |
             label_replace(
-              sum(rate(apisix_http_status{node=~".*canary.*", code!~"5.."}[5m]))
-              / sum(rate(apisix_http_status{node=~".*canary.*"}[5m])),
+              sum(rate(apisix_http_status{route="api-route-canary", code!~"5.."}[5m]))
+              / sum(rate(apisix_http_status{route="api-route-canary"}[5m])),
               "version", "canary", "", ""
             )
 
@@ -59,8 +59,8 @@ spec:
         - record: sli:latency_p95_500ms:ratio_rate5m
           expr: |
             label_replace(
-              sum(rate(apisix_http_latency_bucket{type="request", node=~".*stable.*", le="500"}[5m]))
-              / sum(rate(apisix_http_latency_count{type="request", node=~".*stable.*"}[5m])),
+              sum(rate(apisix_http_latency_bucket{type="request", route="api-route", le="500"}[5m]))
+              / sum(rate(apisix_http_latency_count{type="request", route="api-route"}[5m])),
               "version", "stable", "", ""
             )
 
@@ -68,8 +68,8 @@ spec:
         - record: sli:latency_p95_500ms:ratio_rate5m
           expr: |
             label_replace(
-              sum(rate(apisix_http_latency_bucket{type="request", node=~".*canary.*", le="500"}[5m]))
-              / sum(rate(apisix_http_latency_count{type="request", node=~".*canary.*"}[5m])),
+              sum(rate(apisix_http_latency_bucket{type="request", route="api-route-canary", le="500"}[5m]))
+              / sum(rate(apisix_http_latency_count{type="request", route="api-route-canary"}[5m])),
               "version", "canary", "", ""
             )
 
@@ -109,8 +109,8 @@ spec:
         # Canary 可用性 1 小時 burn rate
         - record: slo:error_budget:canary_burn_rate1h
           expr: |
-            (1 - sum(rate(apisix_http_status{node=~".*canary.*", code!~"5.."}[1h]))
-                 / sum(rate(apisix_http_status{node=~".*canary.*"}[1h])))
+            (1 - sum(rate(apisix_http_status{route="api-route-canary", code!~"5.."}[1h]))
+                 / sum(rate(apisix_http_status{route="api-route-canary"}[1h])))
             / 0.005
 
         # ── Error Budget 剩餘量 (月度) ────────────────────────────────────

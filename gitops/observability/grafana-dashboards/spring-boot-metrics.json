@@ -138,6 +138,156 @@
       "transformations": [
         { "id": "organize", "options": { "excludeByName": { "Time": true, "Value": true }, "renameByName": { "instance": "Instance", "version": "Version" } } }
       ]
+    },
+    {
+      "title": "Thread States",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "jvm_threads_states_threads{application=\"demo-api\", state=\"runnable\"}",
+          "legendFormat": "Runnable"
+        },
+        {
+          "expr": "jvm_threads_states_threads{application=\"demo-api\", state=\"blocked\"}",
+          "legendFormat": "Blocked"
+        },
+        {
+          "expr": "jvm_threads_states_threads{application=\"demo-api\", state=\"waiting\"}",
+          "legendFormat": "Waiting"
+        },
+        {
+          "expr": "jvm_threads_states_threads{application=\"demo-api\", state=\"timed-waiting\"}",
+          "legendFormat": "Timed-Waiting"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "title": "Logback Events (Error / Warn)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(increase(logback_events_total{application=\"demo-api\", level=\"error\"}[5m]))",
+          "legendFormat": "ERROR"
+        },
+        {
+          "expr": "sum(increase(logback_events_total{application=\"demo-api\", level=\"warn\"}[5m]))",
+          "legendFormat": "WARN"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "ERROR" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "WARN" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "title": "GC Memory Allocation Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(jvm_gc_memory_allocated_bytes_total{application=\"demo-api\"}[5m])",
+          "legendFormat": "Allocation Rate"
+        },
+        {
+          "expr": "rate(jvm_gc_memory_promoted_bytes_total{application=\"demo-api\"}[5m])",
+          "legendFormat": "Promotion Rate"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps" } }
+    },
+    {
+      "title": "JVM Buffer Pools",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "jvm_buffer_memory_used_bytes{application=\"demo-api\"}",
+          "legendFormat": "{{id}} used"
+        },
+        {
+          "expr": "jvm_buffer_total_capacity_bytes{application=\"demo-api\"}",
+          "legendFormat": "{{id}} capacity"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "title": "Class Loading",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "jvm_classes_loaded_classes{application=\"demo-api\"}",
+          "legendFormat": "Loaded"
+        },
+        {
+          "expr": "rate(jvm_classes_unloaded_classes_total{application=\"demo-api\"}[5m])",
+          "legendFormat": "Unloaded Rate"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "title": "File Descriptors",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "process_files_open_files{application=\"demo-api\"}",
+          "legendFormat": "Open FDs"
+        },
+        {
+          "expr": "process_files_max_files{application=\"demo-api\"}",
+          "legendFormat": "Max FDs"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "title": "Tomcat Threads",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 56 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "tomcat_threads_busy_threads{application=\"demo-api\"}",
+          "legendFormat": "Busy"
+        },
+        {
+          "expr": "tomcat_threads_current_threads{application=\"demo-api\"}",
+          "legendFormat": "Current"
+        },
+        {
+          "expr": "tomcat_threads_config_max_threads{application=\"demo-api\"}",
+          "legendFormat": "Max"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "title": "HTTP Request Duration (P99 by URI)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 56 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{application=\"demo-api\"}[5m])) by (le, uri))",
+          "legendFormat": "{{uri}} P99"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
     }
   ],
   "schemaVersion": 39,

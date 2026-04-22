@@ -109,6 +109,45 @@
         }
       ],
       "fieldConfig": { "defaults": { "unit": "percent" } }
+    },
+    {
+      "title": "QPS by Consumer",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(apisix_http_status{consumer!=\"\"}[5m])) by (consumer)",
+          "legendFormat": "{{consumer}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "title": "Consumer Error Rate (%)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(apisix_http_status{consumer!=\"\", code=~\"5..\"}[5m])) by (consumer) / sum(rate(apisix_http_status{consumer!=\"\"}[5m])) by (consumer) * 100",
+          "legendFormat": "{{consumer}} 5xx %"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent" } }
+    },
+    {
+      "title": "P95 Latency by Consumer",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", consumer!=\"\"}[5m])) by (le, consumer))",
+          "legendFormat": "{{consumer}} P95"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
     }
   ],
   "schemaVersion": 39,

@@ -1,0 +1,223 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "title": "Pod CPU Usage — Stable vs Canary",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"app\", pod=~\"spring-boot-stable-.*\", container!=\"\", container!=\"POD\"}[5m])) by (pod)",
+          "legendFormat": "stable / {{pod}}"
+        },
+        {
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"app\", pod=~\"spring-boot-canary-.*\", container!=\"\", container!=\"POD\"}[5m])) by (pod)",
+          "legendFormat": "canary / {{pod}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "cores" },
+        "overrides": [
+          {
+            "matcher": { "id": "byFrameRefID", "options": "A" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byFrameRefID", "options": "B" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "Pod Memory (Working Set) — Stable vs Canary",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(container_memory_working_set_bytes{namespace=\"app\", pod=~\"spring-boot-stable-.*\", container!=\"\", container!=\"POD\"}) by (pod)",
+          "legendFormat": "stable / {{pod}}"
+        },
+        {
+          "expr": "sum(container_memory_working_set_bytes{namespace=\"app\", pod=~\"spring-boot-canary-.*\", container!=\"\", container!=\"POD\"}) by (pod)",
+          "legendFormat": "canary / {{pod}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes" },
+        "overrides": [
+          {
+            "matcher": { "id": "byFrameRefID", "options": "A" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byFrameRefID", "options": "B" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "Deployment Available Replicas",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "horizontal",
+        "colorMode": "background"
+      },
+      "targets": [
+        {
+          "expr": "kube_deployment_status_replicas_available{namespace=\"app\", deployment=\"spring-boot-stable\"}",
+          "legendFormat": "Stable"
+        },
+        {
+          "expr": "kube_deployment_status_replicas_available{namespace=\"app\", deployment=\"spring-boot-canary\"}",
+          "legendFormat": "Canary"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } }
+      }
+    },
+    {
+      "title": "Pod Restarts (last 1h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "horizontal",
+        "colorMode": "background"
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"app\", pod=~\"spring-boot-stable-.*\"}[1h]))",
+          "legendFormat": "Stable Restarts"
+        },
+        {
+          "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"app\", pod=~\"spring-boot-canary-.*\"}[1h]))",
+          "legendFormat": "Canary Restarts"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 3 }] } }
+      }
+    },
+    {
+      "title": "Deployment Desired vs Available Replicas",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "kube_deployment_spec_replicas{namespace=\"app\", deployment=~\"spring-boot-.*\"}",
+          "legendFormat": "{{deployment}} desired"
+        },
+        {
+          "expr": "kube_deployment_status_replicas_available{namespace=\"app\", deployment=~\"spring-boot-.*\"}",
+          "legendFormat": "{{deployment}} available"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "title": "CPU Usage — Stable Average vs Canary Average",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "avg(rate(container_cpu_usage_seconds_total{namespace=\"app\", pod=~\"spring-boot-stable-.*\", container!=\"\", container!=\"POD\"}[5m]))",
+          "legendFormat": "Stable avg CPU"
+        },
+        {
+          "expr": "avg(rate(container_cpu_usage_seconds_total{namespace=\"app\", pod=~\"spring-boot-canary-.*\", container!=\"\", container!=\"POD\"}[5m]))",
+          "legendFormat": "Canary avg CPU"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "cores" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable avg CPU" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary avg CPU" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "title": "Memory Usage — Stable Average vs Canary Average",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "avg(container_memory_working_set_bytes{namespace=\"app\", pod=~\"spring-boot-stable-.*\", container!=\"\", container!=\"POD\"})",
+          "legendFormat": "Stable avg Memory"
+        },
+        {
+          "expr": "avg(container_memory_working_set_bytes{namespace=\"app\", pod=~\"spring-boot-canary-.*\", container!=\"\", container!=\"POD\"})",
+          "legendFormat": "Canary avg Memory"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable avg Memory" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary avg Memory" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "title": "Pod Restart History",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"app\", pod=~\"spring-boot-stable-.*\"}[5m])) by (pod)",
+          "legendFormat": "stable / {{pod}}"
+        },
+        {
+          "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"app\", pod=~\"spring-boot-canary-.*\"}[5m])) by (pod)",
+          "legendFormat": "canary / {{pod}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "title": "Network I/O — Stable vs Canary Pods",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"app\", pod=~\"spring-boot-stable-.*\"}[5m]))",
+          "legendFormat": "Stable RX"
+        },
+        {
+          "expr": "sum(rate(container_network_transmit_bytes_total{namespace=\"app\", pod=~\"spring-boot-stable-.*\"}[5m]))",
+          "legendFormat": "Stable TX"
+        },
+        {
+          "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"app\", pod=~\"spring-boot-canary-.*\"}[5m]))",
+          "legendFormat": "Canary RX"
+        },
+        {
+          "expr": "sum(rate(container_network_transmit_bytes_total{namespace=\"app\", pod=~\"spring-boot-canary-.*\"}[5m]))",
+          "legendFormat": "Canary TX"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps" } }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["kubernetes", "canary", "pod", "resources"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "Kubernetes Pod Resources",
+  "uid": "kubernetes-pod-resources"
+}
