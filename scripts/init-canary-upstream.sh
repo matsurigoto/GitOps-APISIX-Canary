@@ -10,6 +10,9 @@ set -euo pipefail
 APISIX_ADMIN="${APISIX_ADMIN_URL:-http://127.0.0.1:9180}"
 ADMIN_KEY="${APISIX_ADMIN_KEY:-gitops-canary-admin-key-2026}"
 UPSTREAM_ID="canary-upstream"
+# Ingress Controller managed upstream for canary pods (used in traffic-split)
+# ID is derived from the ApisixRoute CRD: app_spring-boot-canary_8080
+CANARY_UPSTREAM_ID="${CANARY_UPSTREAM_ID:-1b646cab}"
 
 echo "Initializing canary upstream via Admin API..."
 echo "APISIX Admin: $APISIX_ADMIN"
@@ -96,6 +99,16 @@ ROUTE_PAYLOAD=$(cat <<EOF
       "with_route": true,
       "with_service": false,
       "with_consumer": false
+    },
+    "traffic-split": {
+      "rules": [
+        {
+          "match": [{"vars": [["http_x_canary", "==", "true"]]}],
+          "weighted_upstreams": [
+            {"upstream_id": "${CANARY_UPSTREAM_ID}", "weight": 100}
+          ]
+        }
+      ]
     }
   }
 }
