@@ -40,9 +40,6 @@ tempo:
   global_overrides:
     per_tenant_override_config: ""
     max_traces_per_user: 0
-    metrics_generator_processors:
-      - service-graphs
-      - span-metrics
 
 persistence:
   enabled: true
