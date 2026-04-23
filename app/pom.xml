@@ -20,6 +20,7 @@
 
   <properties>
     <java.version>21</java.version>
+    <opentelemetry.version>2.17.0</opentelemetry.version>
   </properties>
 
   <dependencies>
@@ -39,6 +40,13 @@
     <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+
+    <!-- OpenTelemetry Auto-instrumentation (Spring Boot 3.x) -->
+    <dependency>
+      <groupId>io.opentelemetry.instrumentation</groupId>
+      <artifactId>opentelemetry-spring-boot-starter</artifactId>
+      <version>2.9.0-alpha</version>
     </dependency>
 
     <!-- Test -->
