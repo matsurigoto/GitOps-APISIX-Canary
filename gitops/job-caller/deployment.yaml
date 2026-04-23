@@ -54,7 +54,7 @@ spec:
                 # sleep 1
 
                 # /api/slow — canary only (8s response time)
-                call canary  /api/slow -H "x-canary: true"
+                # call canary  /api/slow -H "x-canary: true"
                 sleep 1
               done
           resources:
