@@ -10,11 +10,11 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{route=~\"api-route.*\", node=~\"spring-boot-stable.*\"}[5m]))",
+          "expr": "sum(rate(apisix_http_status{route=\"canary-api-route\", node=\"10.0.102.231\"}[5m]))",
           "legendFormat": "Stable"
         },
         {
-          "expr": "sum(rate(apisix_http_status{route=~\"api-route.*\", node=~\"spring-boot-canary.*\"}[5m]))",
+          "expr": "sum(rate(apisix_http_status{route=\"canary-api-route\", node!=\"10.0.102.231\", node!=\"\"}[5m]))",
           "legendFormat": "Canary"
         }
       ],
@@ -31,11 +31,11 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{route=~\"api-route.*\", node=~\"spring-boot-stable.*\"}[1m]))",
+          "expr": "sum(rate(apisix_http_status{route=\"canary-api-route\", node=\"10.0.102.231\"}[1m]))",
           "legendFormat": "Stable QPS"
         },
         {
-          "expr": "sum(rate(apisix_http_status{route=~\"api-route.*\", node=~\"spring-boot-canary.*\"}[1m]))",
+          "expr": "sum(rate(apisix_http_status{route=\"canary-api-route\", node!=\"10.0.102.231\", node!=\"\"}[1m]))",
           "legendFormat": "Canary QPS"
         }
       ],
@@ -54,11 +54,11 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=~\"api-route.*\", node=~\"spring-boot-stable.*\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"canary-api-route\", node=\"10.0.102.231\"}[5m])) by (le))",
           "legendFormat": "Stable P95"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=~\"api-route.*\", node=~\"spring-boot-canary.*\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"canary-api-route\", node!=\"10.0.102.231\", node!=\"\"}[5m])) by (le))",
           "legendFormat": "Canary P95"
         }
       ],
@@ -77,11 +77,11 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=~\"api-route.*\", node=~\"spring-boot-stable.*\"}[5m])) / sum(rate(apisix_http_status{route=~\"api-route.*\", node=~\"spring-boot-stable.*\"}[5m])) * 100",
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=\"canary-api-route\", node=\"10.0.102.231\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-api-route\", node=\"10.0.102.231\"}[5m])) * 100",
           "legendFormat": "Stable 5xx %"
         },
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=~\"api-route.*\", node=~\"spring-boot-canary.*\"}[5m])) / sum(rate(apisix_http_status{route=~\"api-route.*\", node=~\"spring-boot-canary.*\"}[5m])) * 100",
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=\"canary-api-route\", node!=\"10.0.102.231\", node!=\"\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-api-route\", node!=\"10.0.102.231\", node!=\"\"}[5m])) * 100",
           "legendFormat": "Canary 5xx %"
         }
       ],
@@ -100,11 +100,11 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"2..\", route=~\"api-route.*\", node=~\"spring-boot-stable.*\"}[5m])) / sum(rate(apisix_http_status{route=~\"api-route.*\", node=~\"spring-boot-stable.*\"}[5m])) * 100",
+          "expr": "sum(rate(apisix_http_status{code=~\"2..\", route=\"canary-api-route\", node=\"10.0.102.231\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-api-route\", node=\"10.0.102.231\"}[5m])) * 100",
           "legendFormat": "Stable Success %"
         },
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"2..\", route=~\"api-route.*\", node=~\"spring-boot-canary.*\"}[5m])) / sum(rate(apisix_http_status{route=~\"api-route.*\", node=~\"spring-boot-canary.*\"}[5m])) * 100",
+          "expr": "sum(rate(apisix_http_status{code=~\"2..\", route=\"canary-api-route\", node!=\"10.0.102.231\", node!=\"\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-api-route\", node!=\"10.0.102.231\", node!=\"\"}[5m])) * 100",
           "legendFormat": "Canary Success %"
         }
       ],
@@ -129,11 +129,11 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", route=~\"api-route.*\", node=~\"spring-boot-stable.*\"}[5m]))",
+          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", route=\"canary-api-route\", node=\"10.0.102.231\"}[5m]))",
           "legendFormat": "Stable Egress"
         },
         {
-          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", route=~\"api-route.*\", node=~\"spring-boot-canary.*\"}[5m]))",
+          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", route=\"canary-api-route\", node!=\"10.0.102.231\", node!=\"\"}[5m]))",
           "legendFormat": "Canary Egress"
         }
       ],
