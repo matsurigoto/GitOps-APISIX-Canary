@@ -140,28 +140,69 @@ chmod +x scripts/init-canary-upstream.sh
 ### 逐步金絲雀升級
 
 ```bash
-# Step 1: 部署 canary (scale up canary deployment)
-kubectl scale deployment spring-boot-canary -n app --replicas=1
+# Step 0: 確保 canary pods 已部署
+kubectl get pods -n app -l version=canary  # 確認 canary pods 運行中
 
+# Step 1: 建立 port-forward（在背景執行）
 kubectl port-forward svc/apisix-admin 9180:9180 -n ingress-apisix &
+# 記錄 process ID 以便稍後關閉: $PF_PID=$!
+
+# Step 2: 初始化 canary upstream (如果還沒有執行過)
+./scripts/init-canary-upstream.sh
+
+# Step 3: 開始時設為 100% stable
 ./scripts/canary-switch.sh --stable 100 --canary 0
 
-# Step 2: 10% 流量到 canary
-kubectl port-forward svc/apisix-admin 9180:9180 -n ingress-apisix &
+# Step 4: 10% 流量到 canary
 ./scripts/canary-switch.sh --stable 90 --canary 10
 
-# Step 3: 觀察 Grafana "Canary Traffic Split" dashboard 5-10 分鐘
+# Step 4: 10% 流量到 canary
+./scripts/canary-switch.sh --stable 90 --canary 10
 
-# Step 4: 增加到 50%
+# Step 5: 觀察 Grafana "Canary Traffic Split" dashboard 5-10 分鐘
+# 檢查錯誤率、延遲、SLO 違規等指標
+
+# Step 6: 如果指標正常，增加到 50%
 ./scripts/canary-switch.sh --stable 50 --canary 50
 
-# Step 5: 全面切換
+# Step 7: 繼續觀察，如果一切正常，全面切換
 ./scripts/canary-switch.sh --stable 0 --canary 100
 
-# Step 6: 完成後，更新 stable deployment image，重置 weight
+# Step 8: 完成後，更新 stable deployment image，重置 weight
+kubectl set image deployment/spring-boot-stable spring-boot=<ACR_LOGIN_SERVER>/spring-demo:v2 -n app
 ./scripts/canary-switch.sh --stable 100 --canary 0
-kubectl scale deployment spring-boot-canary -n app --replicas=0
+
+# Step 9: 清理 - 關閉 port-forward
+kill $PF_PID  # 或使用 fg 然後 Ctrl+C
 ```
+
+### 📝 重要注意事項
+
+**在進行 canary 部署前，請確保：**
+
+1. **Canary upstream 已初始化**
+   ```bash
+   # 檢查 canary upstream 是否存在
+   kubectl port-forward svc/apisix-admin 9180:9180 -n ingress-apisix &
+   curl -H "X-API-KEY: gitops-canary-admin-key-2026" \
+     http://127.0.0.1:9180/apisix/admin/upstreams/canary-upstream
+   
+   # 如果不存在或配置不正確，重新初始化
+   ./scripts/init-canary-upstream.sh
+   ```
+
+2. **Port-forward 必須保持活動狀態**
+   - 在所有 canary-switch 操作期間保持同一個 port-forward 連接
+   - 如果連接中斷，重新建立 port-forward 後再執行命令
+
+3. **Windows PowerShell 用戶**
+   ```powershell
+   # 背景執行 port-forward
+   Start-Process kubectl -ArgumentList "port-forward","svc/apisix-admin","9180:9180","-n","ingress-apisix" -WindowStyle Hidden
+   
+   # 執行 canary switch (使用 bash/WSL)
+   wsl bash -c "./scripts/canary-switch.sh --stable 90 --canary 10"
+   ```
 
 ### 藍綠一鍵切換
 
@@ -233,7 +274,129 @@ kubectl get svc -A | grep LoadBalancer
 | Admin API | Upstream 節點權重 (canary 比例) | 命令式、即時生效 |
 | OPA (Blob Storage bundle) | Header-based 路由決策 | 自動 polling 更新 |
 
-## 📚 文件
+## � 故障排除
+
+### Canary Switch 失敗
+
+**問題：** `./scripts/canary-switch.sh` 執行失敗或無效
+
+**可能原因與解決方案：**
+
+1. **Port-forward 未建立或已中斷**
+   ```bash
+   # 檢查連接
+   curl -H "X-API-KEY: gitops-canary-admin-key-2026" \
+     http://127.0.0.1:9180/apisix/admin/routes
+   
+   # 如果失敗，重新建立 port-forward
+   kubectl port-forward svc/apisix-admin 9180:9180 -n ingress-apisix
+   ```
+
+2. **Upstream 未初始化或配置不正確**
+   ```bash
+   # 檢查 upstream 配置
+   curl -H "X-API-KEY: gitops-canary-admin-key-2026" \
+     http://127.0.0.1:9180/apisix/admin/upstreams/canary-upstream
+   
+   # 重新初始化
+   ./scripts/init-canary-upstream.sh
+   ```
+
+3. **API Key 不匹配**
+   ```bash
+   # 確認 API key 設定
+   echo $APISIX_ADMIN_KEY
+   # 應該輸出: gitops-canary-admin-key-2026
+   
+   # 如果未設定，export 環境變數
+   export APISIX_ADMIN_KEY="gitops-canary-admin-key-2026"
+   ```
+
+### 流量仍然到達 Canary（即使 weight=0）
+
+**問題：** 設定 `--canary 0` 後仍有流量到達 canary 版本
+
+**診斷步驟：**
+
+```bash
+# 1. 檢查實際的 upstream 配置
+curl -H "X-API-KEY: gitops-canary-admin-key-2026" \
+  http://127.0.0.1:9180/apisix/admin/upstreams/canary-upstream | jq '.value.nodes'
+
+# 2. 檢查是否有多個路由配置
+curl -H "X-API-KEY: gitops-canary-admin-key-2026" \
+  http://127.0.0.1:9180/apisix/admin/routes | jq '.list[].value | select(.status==1) | {name, priority, upstream_id}'
+
+# 3. 檢查 Ingress Controller 同步狀態
+kubectl get apisixroute -n app spring-boot-canary -o yaml | grep -A5 status
+
+# 4. 檢查 OPA 策略決策（查看最近的日誌）
+kubectl logs -n opa-system -l app=opa --tail=20 | grep "route_target"
+```
+
+**解決方案：**
+
+```bash
+# 方案 1: 完全移除 canary 節點（停止所有 canary 流量）
+kubectl port-forward svc/apisix-admin 9180:9180 -n ingress-apisix &
+curl -X PUT http://127.0.0.1:9180/apisix/admin/upstreams/canary-upstream \
+  -H "X-API-KEY: gitops-canary-admin-key-2026" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "canary-upstream",
+    "type": "roundrobin",
+    "nodes": {
+      "spring-boot-stable.app:8080": 100
+    }
+  }'
+
+# 方案 2: 重啟 APISIX pod（刷新配置）
+kubectl delete pod -n ingress-apisix -l app.kubernetes.io/name=apisix
+```
+
+### Ingress Controller CRD 同步失敗
+
+**問題：** ApisixRoute 顯示 `ResourceSyncAborted` 錯誤
+
+**診斷：**
+
+```bash
+# 查看 Ingress Controller 日誌
+kubectl logs -n ingress-apisix -l app.kubernetes.io/name=apisix-ingress-controller \
+  --tail=50 | grep -i "error\|401\|apikey"
+```
+
+**解決方案：**
+
+確認 [gitops/apisix/values.yaml](gitops/apisix/values.yaml) 中的 API key 配置正確：
+
+```yaml
+ingress-controller:
+  config:
+    apisix:
+      adminKey: "gitops-canary-admin-key-2026"  # 必須與 admin.credentials.admin 一致
+```
+
+### Port-forward 在 Windows 無法正常工作
+
+**問題：** Windows CMD/PowerShell 中 `&` 背景執行不生效
+
+**解決方案：**
+
+```powershell
+# PowerShell: 使用 Start-Process
+Start-Job -ScriptBlock {
+  kubectl port-forward svc/apisix-admin 9180:9180 -n ingress-apisix
+}
+
+# 或開啟新的終端視窗
+Start-Process powershell -ArgumentList "-NoExit","-Command","kubectl port-forward svc/apisix-admin 9180:9180 -n ingress-apisix"
+
+# 檢查連接
+Test-NetConnection -ComputerName 127.0.0.1 -Port 9180
+```
+
+## �📚 文件
 
 | 文件 | 說明 |
 |------|------|
