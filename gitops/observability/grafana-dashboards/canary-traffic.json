@@ -9,14 +9,13 @@
         "type": "query",
         "datasource": { "type": "prometheus", "uid": "prometheus" },
         "query": {
-          "query": "label_values(kube_pod_info{namespace=\"app\", pod=~\"spring-boot-stable.*\"}, pod_ip)",
+          "query": "label_values(kube_service_info{namespace=\"app\", service=\"spring-boot-stable\"}, cluster_ip)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
-        "multi": true,
-        "includeAll": true,
-        "allValue": ".+",
-        "hide": 0
+        "multi": false,
+        "includeAll": false,
+        "hide": 2
       },
       {
         "name": "canary_nodes",
@@ -24,14 +23,13 @@
         "type": "query",
         "datasource": { "type": "prometheus", "uid": "prometheus" },
         "query": {
-          "query": "label_values(kube_pod_info{namespace=\"app\", pod=~\"spring-boot-canary.*\"}, pod_ip)",
+          "query": "label_values(kube_service_info{namespace=\"app\", service=\"spring-boot-canary\"}, cluster_ip)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
-        "multi": true,
-        "includeAll": true,
-        "allValue": ".+",
-        "hide": 0
+        "multi": false,
+        "includeAll": false,
+        "hide": 2
       }
     ]
   },
@@ -47,7 +45,7 @@
           "legendFormat": "Stable"
         },
         {
-          "expr": "sum(rate(apisix_http_status{route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[5m]))",
+          "expr": "sum(rate(apisix_http_status{route=\"canary-api-route\", node!~\"$stable_nodes\", node!=\"\"}[5m]))",
           "legendFormat": "Canary"
         }
       ],
@@ -68,7 +66,7 @@
           "legendFormat": "Stable QPS"
         },
         {
-          "expr": "sum(rate(apisix_http_status{route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[1m]))",
+          "expr": "sum(rate(apisix_http_status{route=\"canary-api-route\", node!~\"$stable_nodes\", node!=\"\"}[1m]))",
           "legendFormat": "Canary QPS"
         }
       ],
@@ -91,7 +89,7 @@
           "legendFormat": "Stable P95"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"canary-api-route\", node!~\"$stable_nodes\", node!=\"\"}[5m])) by (le))",
           "legendFormat": "Canary P95"
         }
       ],
@@ -114,7 +112,7 @@
           "legendFormat": "Stable 5xx %"
         },
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[5m])) * 100",
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=\"canary-api-route\", node!~\"$stable_nodes\", node!=\"\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-api-route\", node!~\"$stable_nodes\", node!=\"\"}[5m])) * 100",
           "legendFormat": "Canary 5xx %"
         }
       ],
@@ -137,7 +135,7 @@
           "legendFormat": "Stable Success %"
         },
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"2..\", route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[5m])) * 100",
+          "expr": "sum(rate(apisix_http_status{code=~\"2..\", route=\"canary-api-route\", node!~\"$stable_nodes\", node!=\"\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-api-route\", node!~\"$stable_nodes\", node!=\"\"}[5m])) * 100",
           "legendFormat": "Canary Success %"
         }
       ],
@@ -166,7 +164,7 @@
           "legendFormat": "Stable Egress"
         },
         {
-          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[5m]))",
+          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", route=\"canary-api-route\", node!~\"$stable_nodes\", node!=\"\"}[5m]))",
           "legendFormat": "Canary Egress"
         }
       ],
