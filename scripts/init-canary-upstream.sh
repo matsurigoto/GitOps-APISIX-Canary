@@ -14,7 +14,9 @@ UPSTREAM_ID="canary-upstream"
 echo "Initializing canary upstream via Admin API..."
 echo "APISIX Admin: $APISIX_ADMIN"
 
-# Create upstream with stable=100, canary=0
+# Create upstream with stable=100, canary=1
+# NOTE: Canary weight must be >= 1 (not 0) for OPA plugin to route traffic to it
+# The OPA plugin will override weight-based routing based on x-canary header
 curl -s -o /dev/null -w "HTTP %{http_code}\n" \
   "${APISIX_ADMIN}/apisix/admin/upstreams/${UPSTREAM_ID}" \
   -H "X-API-KEY: ${ADMIN_KEY}" \
@@ -26,7 +28,7 @@ curl -s -o /dev/null -w "HTTP %{http_code}\n" \
     "type": "roundrobin",
     "nodes": {
       "spring-boot-stable.app:8080": 100,
-      "spring-boot-canary.app:8080": 0
+      "spring-boot-canary.app:8080": 1
     },
     "retries": 3,
     "timeout": {
@@ -53,7 +55,10 @@ curl -s -o /dev/null -w "HTTP %{http_code}\n" \
 echo ""
 echo "Upstream '${UPSTREAM_ID}' initialized."
 echo "  stable  → spring-boot-stable.app:8080  (weight: 100)"
-echo "  canary  → spring-boot-canary.app:8080  (weight: 0)"
+echo "  canary  → spring-boot-canary.app:8080  (weight: 1)"
+echo ""
+echo "NOTE: Although weight ratio is 100:1, OPA plugin will override this"
+echo "      and route based on x-canary header (header-based routing)."
 
 # =============================================================================
 # Create Admin API route for /api/* pointing to canary-upstream
