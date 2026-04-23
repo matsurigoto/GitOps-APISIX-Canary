@@ -124,11 +124,64 @@ curl -s -o /dev/null -w "HTTP %{http_code}\n" \
 
 echo ""
 echo "Route '${ROUTE_ID}' created (priority=100 → overrides CRD route priority=0)."
+
+# =============================================================================
+# Create dedicated canary-header-route for x-canary: true requests
+# Priority 200 ensures it wins over canary-api-route (priority=100).
+# This route produces a distinct route="canary-header-route" label in
+# Prometheus metrics, enabling the Grafana Canary Traffic Split dashboard
+# to separately track header-based canary traffic.
+# =============================================================================
+HEADER_ROUTE_ID="canary-header-route"
+
+echo ""
+echo "Creating Admin API route '${HEADER_ROUTE_ID}' for x-canary:true → ${CANARY_UPSTREAM_ID} ..."
+
+HEADER_ROUTE_PAYLOAD=$(cat <<EOF
+{
+  "name": "canary-header-route",
+  "desc": "Header-based canary route — x-canary:true → canary pods. Produces distinct route label for Grafana.",
+  "uri": "/api/*",
+  "methods": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  "vars": [["http_x_canary", "==", "true"]],
+  "upstream_id": "${CANARY_UPSTREAM_ID}",
+  "priority": 200,
+  "plugins": {
+    "prometheus": {
+      "prefer_name": true
+    },
+    "opentelemetry": {
+      "sampler": {
+        "name": "always_on"
+      }
+    },
+    "opa": {
+      "host": "${OPA_HOST}",
+      "policy": "apisix/canary",
+      "with_route": true,
+      "with_service": false,
+      "with_consumer": false
+    }
+  }
+}
+EOF
+)
+
+curl -s -o /dev/null -w "HTTP %{http_code}\n" \
+  "${APISIX_ADMIN}/apisix/admin/routes/${HEADER_ROUTE_ID}" \
+  -H "X-API-KEY: ${ADMIN_KEY}" \
+  -H "Content-Type: application/json" \
+  -X PUT \
+  -d "${HEADER_ROUTE_PAYLOAD}"
+
+echo ""
+echo "Route '${HEADER_ROUTE_ID}' created (priority=200, x-canary:true → upstream ${CANARY_UPSTREAM_ID})."
 echo ""
 echo "Verify:"
-echo "  curl ${APISIX_ADMIN}/apisix/admin/upstreams/${UPSTREAM_ID} -H 'X-API-KEY: ${ADMIN_KEY}'"
-echo "  curl ${APISIX_ADMIN}/apisix/admin/routes/${ROUTE_ID}       -H 'X-API-KEY: ${ADMIN_KEY}'"
+echo "  curl ${APISIX_ADMIN}/apisix/admin/upstreams/${UPSTREAM_ID}      -H 'X-API-KEY: ${ADMIN_KEY}'"
+echo "  curl ${APISIX_ADMIN}/apisix/admin/routes/${ROUTE_ID}            -H 'X-API-KEY: ${ADMIN_KEY}'"
+echo "  curl ${APISIX_ADMIN}/apisix/admin/routes/${HEADER_ROUTE_ID}     -H 'X-API-KEY: ${ADMIN_KEY}'"
 echo ""
 echo "Grafana 'Canary Traffic Split' dashboard queries:"
-echo "  node=~\".*stable.*\"  →  spring-boot-stable.app:8080"
-echo "  node=~\".*canary.*\"  →  spring-boot-canary.app:8080"
+echo "  route=\"canary-api-route\"    →  weighted stable/canary traffic"
+echo "  route=\"canary-header-route\" →  x-canary:true header traffic"

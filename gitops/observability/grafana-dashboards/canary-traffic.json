@@ -1,6 +1,40 @@
 {
   "annotations": { "list": [] },
   "editable": true,
+  "templating": {
+    "list": [
+      {
+        "name": "stable_nodes",
+        "label": "Stable Nodes",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": {
+          "query": "label_values(kube_pod_info{namespace=\"app\", pod=~\"spring-boot-stable.*\"}, pod_ip)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".+",
+        "hide": 0
+      },
+      {
+        "name": "canary_nodes",
+        "label": "Canary Nodes",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": {
+          "query": "label_values(kube_pod_info{namespace=\"app\", pod=~\"spring-boot-canary.*\"}, pod_ip)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".+",
+        "hide": 0
+      }
+    ]
+  },
   "panels": [
     {
       "title": "Traffic Distribution (Stable vs Canary)",
@@ -9,12 +43,12 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{route=\"canary-api-route\"}[5m]))",
-          "legendFormat": "Stable (Weighted)"
+          "expr": "sum(rate(apisix_http_status{route=\"canary-api-route\", node=~\"$stable_nodes\", node!=\"\"}[5m]))",
+          "legendFormat": "Stable"
         },
         {
-          "expr": "sum(rate(apisix_http_status{route=\"canary-header-route\"}[5m]))",
-          "legendFormat": "Canary (Header)"
+          "expr": "sum(rate(apisix_http_status{route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[5m]))",
+          "legendFormat": "Canary"
         }
       ],
       "options": {
@@ -30,11 +64,11 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{route=\"canary-api-route\"}[1m]))",
+          "expr": "sum(rate(apisix_http_status{route=\"canary-api-route\", node=~\"$stable_nodes\", node!=\"\"}[1m]))",
           "legendFormat": "Stable QPS"
         },
         {
-          "expr": "sum(rate(apisix_http_status{route=\"canary-header-route\"}[1m]))",
+          "expr": "sum(rate(apisix_http_status{route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[1m]))",
           "legendFormat": "Canary QPS"
         }
       ],
@@ -53,11 +87,11 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"canary-api-route\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"canary-api-route\", node=~\"$stable_nodes\", node!=\"\"}[5m])) by (le))",
           "legendFormat": "Stable P95"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"canary-header-route\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[5m])) by (le))",
           "legendFormat": "Canary P95"
         }
       ],
@@ -76,11 +110,11 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=\"canary-api-route\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-api-route\"}[5m])) * 100",
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=\"canary-api-route\", node=~\"$stable_nodes\", node!=\"\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-api-route\", node=~\"$stable_nodes\", node!=\"\"}[5m])) * 100",
           "legendFormat": "Stable 5xx %"
         },
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=\"canary-header-route\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-header-route\"}[5m])) * 100",
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[5m])) * 100",
           "legendFormat": "Canary 5xx %"
         }
       ],
@@ -99,11 +133,11 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"2..\", route=\"canary-api-route\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-api-route\"}[5m])) * 100",
+          "expr": "sum(rate(apisix_http_status{code=~\"2..\", route=\"canary-api-route\", node=~\"$stable_nodes\", node!=\"\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-api-route\", node=~\"$stable_nodes\", node!=\"\"}[5m])) * 100",
           "legendFormat": "Stable Success %"
         },
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"2..\", route=\"canary-header-route\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-header-route\"}[5m])) * 100",
+          "expr": "sum(rate(apisix_http_status{code=~\"2..\", route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[5m])) / sum(rate(apisix_http_status{route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[5m])) * 100",
           "legendFormat": "Canary Success %"
         }
       ],
@@ -128,11 +162,11 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", route=\"canary-api-route\"}[5m]))",
+          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", route=\"canary-api-route\", node=~\"$stable_nodes\", node!=\"\"}[5m]))",
           "legendFormat": "Stable Egress"
         },
         {
-          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", route=\"canary-header-route\"}[5m]))",
+          "expr": "sum(rate(apisix_bandwidth{type=\"egress\", route=\"canary-api-route\", node=~\"$canary_nodes\", node!=\"\"}[5m]))",
           "legendFormat": "Canary Egress"
         }
       ],
