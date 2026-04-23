@@ -38,23 +38,23 @@ spec:
                 # /api/hello — stable & canary
                 call stable  /api/hello
                 sleep 1
-                call canary  /api/hello -H "x-canary: true"
-                sleep 1
+                # call canary  /api/hello -H "x-canary: true"
+                # sleep 1
 
                 # /api/health — stable & canary
                 call stable  /api/health
                 sleep 1
-                call canary  /api/health -H "x-canary: true"
-                sleep 1
+                #call canary  /api/health -H "x-canary: true"
+                # sleep 1
 
                 # /api/info — stable & canary
                 call stable  /api/info
                 sleep 1
-                call canary  /api/info -H "x-canary: true"
-                sleep 1
+                # call canary  /api/info -H "x-canary: true"
+                # sleep 1
 
                 # /api/slow — canary only (8s response time)
-                call canary  /api/slow -H "x-canary: true"
+                call canary  /api/slow
                 sleep 1
               done
           resources:

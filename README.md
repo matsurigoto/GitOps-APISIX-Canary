@@ -143,6 +143,9 @@ chmod +x scripts/init-canary-upstream.sh
 # Step 1: 部署 canary (scale up canary deployment)
 kubectl scale deployment spring-boot-canary -n app --replicas=1
 
+kubectl port-forward svc/apisix-admin 9180:9180 -n ingress-apisix &
+./scripts/canary-switch.sh --stable 100 --canary 0
+
 # Step 2: 10% 流量到 canary
 kubectl port-forward svc/apisix-admin 9180:9180 -n ingress-apisix &
 ./scripts/canary-switch.sh --stable 90 --canary 10
