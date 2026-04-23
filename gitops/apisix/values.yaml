@@ -116,6 +116,7 @@ ingress-controller:
     apisix:
       adminAPIVersion: v3
       serviceNamespace: ingress-apisix
+      adminKey: "gitops-canary-admin-key-2026"  # Must match admin.credentials.admin
   service:
     type: LoadBalancer
 
