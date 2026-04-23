@@ -19,14 +19,22 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status[5m])) by (route)",
-          "legendFormat": "{{route}}"
+          "expr": "sum(rate(apisix_http_status{route=\"api-route\"}[5m]))",
+          "legendFormat": "Stable (api-route)"
+        },
+        {
+          "expr": "sum(rate(apisix_http_status{route=\"api-route-canary\"}[5m]))",
+          "legendFormat": "Canary (api-route-canary)"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "reqps"
-        }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable (api-route)" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary (api-route-canary)" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
       }
     },
     {
@@ -44,8 +52,12 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status[5m])) by (route, code)",
-          "legendFormat": "{{route}} - HTTP {{code}}"
+          "expr": "sum(rate(apisix_http_status{route=\"api-route\"}[5m])) by (code)",
+          "legendFormat": "Stable - HTTP {{code}}"
+        },
+        {
+          "expr": "sum(rate(apisix_http_status{route=\"api-route-canary\"}[5m])) by (code)",
+          "legendFormat": "Canary - HTTP {{code}}"
         }
       ],
       "fieldConfig": {
@@ -69,14 +81,22 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum(rate(apisix_http_latency_bucket{type=\"request\"}[5m])) by (le, route))",
-          "legendFormat": "{{route}} P50"
+          "expr": "histogram_quantile(0.50, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"api-route\"}[5m])) by (le))",
+          "legendFormat": "Stable P50"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"api-route-canary\"}[5m])) by (le))",
+          "legendFormat": "Canary P50"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "ms"
-        }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable P50" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary P50" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
       }
     },
     {
@@ -94,14 +114,22 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\"}[5m])) by (le, route))",
-          "legendFormat": "{{route}} P95"
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"api-route\"}[5m])) by (le))",
+          "legendFormat": "Stable P95"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"api-route-canary\"}[5m])) by (le))",
+          "legendFormat": "Canary P95"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "ms"
-        }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable P95" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary P95" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
       }
     },
     {
@@ -119,14 +147,22 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(apisix_http_latency_bucket{type=\"request\"}[5m])) by (le, route))",
-          "legendFormat": "{{route}} P99"
+          "expr": "histogram_quantile(0.99, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"api-route\"}[5m])) by (le))",
+          "legendFormat": "Stable P99"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"api-route-canary\"}[5m])) by (le))",
+          "legendFormat": "Canary P99"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "ms"
-        }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable P99" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary P99" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
       }
     },
     {
@@ -144,14 +180,22 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"upstream\"}[5m])) by (le, route))",
-          "legendFormat": "{{route}} upstream P95"
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"upstream\", route=\"api-route\"}[5m])) by (le))",
+          "legendFormat": "Stable upstream P95"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"upstream\", route=\"api-route-canary\"}[5m])) by (le))",
+          "legendFormat": "Canary upstream P95"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "ms"
-        }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable upstream P95" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary upstream P95" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
       }
     },
     {
@@ -169,14 +213,22 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"apisix\"}[5m])) by (le, route))",
-          "legendFormat": "{{route}} apisix P95"
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"apisix\", route=\"api-route\"}[5m])) by (le))",
+          "legendFormat": "Stable apisix P95"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"apisix\", route=\"api-route-canary\"}[5m])) by (le))",
+          "legendFormat": "Canary apisix P95"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "ms"
-        }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable apisix P95" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary apisix P95" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
       }
     },
     {
@@ -194,18 +246,32 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"5..\"}[5m])) by (route) / sum(rate(apisix_http_status[5m])) by (route) * 100",
-          "legendFormat": "{{route}} 5xx %"
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=\"api-route\"}[5m])) / sum(rate(apisix_http_status{route=\"api-route\"}[5m])) * 100",
+          "legendFormat": "Stable 5xx %"
         },
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"4..\"}[5m])) by (route) / sum(rate(apisix_http_status[5m])) by (route) * 100",
-          "legendFormat": "{{route}} 4xx %"
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=\"api-route-canary\"}[5m])) / sum(rate(apisix_http_status{route=\"api-route-canary\"}[5m])) * 100",
+          "legendFormat": "Canary 5xx %"
+        },
+        {
+          "expr": "sum(rate(apisix_http_status{code=~\"4..\", route=\"api-route\"}[5m])) / sum(rate(apisix_http_status{route=\"api-route\"}[5m])) * 100",
+          "legendFormat": "Stable 4xx %"
+        },
+        {
+          "expr": "sum(rate(apisix_http_status{code=~\"4..\", route=\"api-route-canary\"}[5m])) / sum(rate(apisix_http_status{route=\"api-route-canary\"}[5m])) * 100",
+          "legendFormat": "Canary 4xx %"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "percent"
-        }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable 5xx %" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary 5xx %" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Stable 4xx %" }, "properties": [{ "id": "color", "value": { "fixedColor": "light-green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary 4xx %" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] }
+        ]
       }
     },
     {
@@ -223,14 +289,22 @@
       },
       "targets": [
         {
-          "expr": "topk(10, sum(rate(apisix_http_status[5m])) by (route))",
-          "legendFormat": "{{route}}"
+          "expr": "sum(rate(apisix_http_status{route=\"api-route\"}[5m]))",
+          "legendFormat": "Stable (api-route)"
+        },
+        {
+          "expr": "sum(rate(apisix_http_status{route=\"api-route-canary\"}[5m]))",
+          "legendFormat": "Canary (api-route-canary)"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "reqps"
-        }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable (api-route)" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary (api-route-canary)" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
       }
     },
     {
@@ -248,14 +322,22 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(apisix_http_status{code=~\"5..\"}[5m])) by (route) / sum(rate(apisix_http_status[5m])) by (route) * 100",
-          "legendFormat": "{{route}} 5xx %"
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=\"api-route\"}[5m])) / sum(rate(apisix_http_status{route=\"api-route\"}[5m])) * 100",
+          "legendFormat": "Stable 5xx %"
+        },
+        {
+          "expr": "sum(rate(apisix_http_status{code=~\"5..\", route=\"api-route-canary\"}[5m])) / sum(rate(apisix_http_status{route=\"api-route-canary\"}[5m])) * 100",
+          "legendFormat": "Canary 5xx %"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "percent"
-        }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable 5xx %" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary 5xx %" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
       }
     },
     {
@@ -273,14 +355,22 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\"}[5m])) by (le, route))",
-          "legendFormat": "{{route}} P95"
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"api-route\"}[5m])) by (le))",
+          "legendFormat": "Stable P95"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(apisix_http_latency_bucket{type=\"request\", route=\"api-route-canary\"}[5m])) by (le))",
+          "legendFormat": "Canary P95"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "ms"
-        }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Stable P95" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Canary P95" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
       }
     }
   ],
